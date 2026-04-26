@@ -104,6 +104,49 @@ with tab2:
             cols[1].metric("MAP max (mbar)", f"{result.metrics['map_peak_mbar']:.0f}")
             cols[2].metric("Temperatura max (C)", f"{result.metrics['coolant_peak_c']:.1f}")
 
+        if result.data is not None:
+            st.divider()
+            st.subheader("Visualización del rendimiento")
+            
+            # Gráfica de MAF: Actual vs Requested
+            fig_maf = px.line(
+                result.data, 
+                x=result.data.index, 
+                y=["maf_requested", "maf_actual"],
+                title="Caudalímetro (MAF): Solicitado vs. Actual",
+                labels={"value": "mg/str", "index": "Muestra", "variable": "Tipo"},
+                color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"}
+            )
+            fig_maf.update_layout(hovermode="x unified")
+            st.plotly_chart(fig_maf, use_container_width=True)
+
+            col_a, col_b = st.columns(2)
+            
+            with col_a:
+                # Gráfica de MAP (Presión del Turbo)
+                fig_map = px.area(
+                    result.data,
+                    x="rpm",
+                    y="map_actual",
+                    title="Presión de Admisión (MAP) vs. RPM",
+                    labels={"map_actual": "mbar", "rpm": "RPM"},
+                    color_discrete_sequence=["#00CC96"]
+                )
+                st.plotly_chart(fig_map, use_container_width=True)
+
+            with col_b:
+                # Gráfica de Temperatura
+                fig_temp = px.line(
+                    result.data,
+                    x=result.data.index,
+                    y="coolant_temp",
+                    title="Temperatura del Refrigerante",
+                    labels={"coolant_temp": "°C", "index": "Muestra"},
+                    color_discrete_sequence=["#AB63FA"]
+                )
+                st.plotly_chart(fig_temp, use_container_width=True)
+
+
 with tab3:
     st.subheader("Propuestas de evolucion")
     st.markdown(

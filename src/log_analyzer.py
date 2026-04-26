@@ -12,6 +12,7 @@ EXPECTED_COLUMNS = {"rpm", "maf_actual", "maf_requested", "map_actual", "coolant
 class AnalysisResult:
     alerts: list[str]
     metrics: dict[str, float]
+    data: pd.DataFrame | None = None
 
 
 def analyze_log(df: pd.DataFrame) -> AnalysisResult:
@@ -25,6 +26,7 @@ def analyze_log(df: pd.DataFrame) -> AnalysisResult:
                 + ". Columnas esperadas: rpm, maf_actual, maf_requested, map_actual, coolant_temp."
             ],
             metrics={},
+            data=None,
         )
 
     data = pd.DataFrame(
@@ -41,6 +43,7 @@ def analyze_log(df: pd.DataFrame) -> AnalysisResult:
         return AnalysisResult(
             alerts=["El log no contiene datos numericos validos tras limpiar valores vacios."],
             metrics={},
+            data=None,
         )
 
     maf_diff_pct = ((data["maf_requested"] - data["maf_actual"]) / data["maf_requested"]).clip(
@@ -70,4 +73,4 @@ def analyze_log(df: pd.DataFrame) -> AnalysisResult:
         "coolant_peak_c": float(coolant_peak),
         "rpm_peak": float(rpm_peak),
     }
-    return AnalysisResult(alerts=alerts, metrics=metrics)
+    return AnalysisResult(alerts=alerts, metrics=metrics, data=data)
