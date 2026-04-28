@@ -56,19 +56,22 @@ def clean_vcds_log(uploaded_file) -> pd.DataFrame | str:
 def analyze_log(df: pd.DataFrame) -> AnalysisResult:
     normalized = {col.lower().strip(): col for col in df.columns}
     
-    # Mapeo inteligente de columnas (VCDS usa nombres largos como 'Engine Speed  (G28)')
+    # Mapeo inteligente MUCHO más agresivo
     mapping = {
-        "rpm": ["rpm", "engine speed", "engine speed  (g28)", "/min"],
-        "maf_actual": ["maf (actual)", "maf_actual", "mass air flow (actual)", "maf - actual"],
-        "maf_requested": ["maf (specified)", "maf_requested", "mass air flow (spec.)", "maf - specified"],
-        "map_actual": ["map (actual)", "map_actual", "boost pressure (actual)", "map - actual"],
-        "coolant_temp": ["coolant temp", "coolant_temp", "temperature", "coolant temperature (g62)"]
+        "rpm": ["rpm", "engine speed", "speed", "(g28)", "/min"],
+        "maf_actual": ["maf (actual)", "maf_actual", "air flow (actual)", "mass air", "actual", "maf"],
+        "maf_requested": ["maf (specified)", "maf_requested", "air flow (spec", "specified", "spec."],
+        "map_actual": ["map (actual)", "map_actual", "boost pressure (actual)", "pressure", "map"],
+        "coolant_temp": ["coolant", "temp", "g62", "temperature"]
     }
     
     found_cols = {}
+    normalized_list = list(normalized.keys())
+    
     for target, alternates in mapping.items():
+        # Prioridad 1: Coincidencia exacta o muy cercana
         for alt in alternates:
-            for norm_col in normalized:
+            for norm_col in normalized_list:
                 if alt in norm_col:
                     found_cols[target] = normalized[norm_col]
                     break
@@ -76,10 +79,12 @@ def analyze_log(df: pd.DataFrame) -> AnalysisResult:
 
     missing = [col for col in EXPECTED_COLUMNS if col not in found_cols]
     if missing:
+        col_list_str = ", ".join(list(df.columns)[:10]) # Primeras 10 columnas encontradas
         return AnalysisResult(
             alerts=[
-                f"Faltan columnas críticas: {', '.join(missing)}. "
-                "Asegúrate de que el log incluya RPM, MAF (Actual/Spec), MAP (Actual) y Temp."
+                f"⚠️ No he podido identificar: **{', '.join(missing)}**",
+                f"Columnas detectadas en tu archivo: `{col_list_str}...`",
+                "Tip: Asegúrate de que el log sea del bloque 003 (MAF) y 011 (Turbo)."
             ],
             metrics={},
             data=None,
