@@ -13,7 +13,8 @@ from src.maintenance import (
     list_entries, 
     get_reminders, 
     get_vehicle_info, 
-    update_vehicle_info
+    update_vehicle_info,
+    get_last_mileage_for_category
 )
 from src.styles import apply_styles
 
@@ -48,12 +49,13 @@ if menu == "🏠 Dashboard":
     
     total_cost = df_entries["cost_eur"].sum() if not df_entries.empty else 0
     last_km = df_entries["mileage_km"].max() if not df_entries.empty else 280000
+    last_oil_km = get_last_mileage_for_category("Aceite") or 270000
     
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Kilometraje Actual", f"{last_km:,} km", delta="280k reach!")
-    c2.metric("Inversión Total", f"{total_cost:,.2f} €")
-    c3.metric("Próximo Aceite", f"{last_km + 10000:,} km", delta="-10,000 km", delta_color="inverse")
-    c4.metric("Estado General", "Excelente", delta="Optimizado")
+    c1.metric("Kilometraje Actual", f"{last_km:,} km")
+    c2.metric("Último Cambio Aceite", f"{last_oil_km:,} km", delta=f"{last_km - last_oil_km} km", delta_color="inverse")
+    c3.metric("Próximo Aceite", f"{last_oil_km + 10000:,} km", delta=f"{(last_oil_km + 10000) - last_km} km")
+    c4.metric("Inversión Total", f"{total_cost:,.2f} €")
 
     st.markdown("---")
     

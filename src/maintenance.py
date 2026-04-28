@@ -68,3 +68,12 @@ def update_vehicle_info(key: str, value: str) -> None:
             "INSERT OR REPLACE INTO vehicle_info (key, value) VALUES (?, ?)", (key, value)
         )
         conn.commit()
+
+
+def get_last_mileage_for_category(category: str) -> int | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT mileage_km FROM maintenance WHERE category = ? ORDER BY mileage_km DESC LIMIT 1",
+            (category,),
+        ).fetchone()
+    return row["mileage_km"] if row else None
