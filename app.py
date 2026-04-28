@@ -24,15 +24,18 @@ apply_styles()
 
 # Sidebar Navigation
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/600px-Volkswagen_logo_2019.svg.png", width=80)
-    st.title("ALH Care")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/600px-Volkswagen_logo_2019.svg.png", width=60)
+    st.markdown("### **Golf IV 1.9 TDI**")
+    st.markdown('<p style="background-color: #0e1b40; color: #3b82f6; padding: 5px 12px; border-radius: 20px; font-weight: bold; border: 1px solid #3b82f6; display: inline-block; font-size: 0.8rem;">DEEP BLUE PEARL</p>', unsafe_allow_html=True)
     st.markdown("---")
     menu = st.radio(
-        "Navegación",
-        ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"]
+        "MENÚ PRINCIPAL",
+        ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"],
+        label_visibility="collapsed"
     )
     st.markdown("---")
-    st.caption("Golf IV 1.9 TDI ALH v2.0")
+    st.info("🚗 **Kilometraje:** 280.000 km\n\n🕒 **Próximo Servicio:** 295.000 km")
+    st.caption("ALH Care v2.1 • Premium Edition")
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
@@ -44,10 +47,10 @@ if menu == "🏠 Dashboard":
     df_entries = pd.DataFrame(entries) if entries else pd.DataFrame()
     
     total_cost = df_entries["cost_eur"].sum() if not df_entries.empty else 0
-    last_km = df_entries["mileage_km"].max() if not df_entries.empty else 250000
+    last_km = df_entries["mileage_km"].max() if not df_entries.empty else 280000
     
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Kilometraje Actual", f"{last_km:,} km", delta="Actualizado")
+    c1.metric("Kilometraje Actual", f"{last_km:,} km", delta="280k reach!")
     c2.metric("Inversión Total", f"{total_cost:,.2f} €")
     c3.metric("Próximo Aceite", f"{last_km + 15000:,} km", delta="-5,000 km", delta_color="inverse")
     c4.metric("Estado General", "Excelente", delta="Optimizado")
@@ -92,7 +95,7 @@ elif menu == "🔧 Mantenimiento":
             col1, col2 = st.columns(2)
             with col1:
                 date = st.date_input("Fecha")
-                mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=250000)
+                mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=280000)
                 category = st.selectbox("Categoría", ["Aceite", "Filtros", "Distribución", "Frenos", "Suspensión", "Neumáticos", "Electrónica", "Otro"])
             with col2:
                 description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")

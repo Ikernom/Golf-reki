@@ -5,49 +5,46 @@ def apply_styles():
         <style>
         /* Main Container */
         .main {
-            background-color: #0e1117;
+            background-color: #050a14;
             color: #ffffff;
         }
         
-        /* Sidebar */
+        /* Sidebar - Deep Blue Pearl Style */
         [data-testid="stSidebar"] {
-            background-image: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            border-right: 1px solid #334155;
+            background-image: linear-gradient(180deg, #0e1b40 0%, #050a14 100%);
+            border-right: 1px solid #1e293b;
+        }
+        
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        /* Highlighted Sidebar Radio */
+        .st-emotion-cache-1647z6a {
+            background-color: rgba(37, 99, 235, 0.1) !important;
+            border-radius: 10px;
         }
         
         /* Cards */
         .stMetric {
-            background-color: #1e293b;
+            background: linear-gradient(145deg, #0f172a, #1e293b);
             padding: 20px;
             border-radius: 15px;
-            border: 1px solid #334155;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: transform 0.2s;
-        }
-        .stMetric:hover {
-            transform: translateY(-5px);
-            border-color: #3b82f6;
-        }
-        
-        /* Titles and Headers */
-        h1, h2, h3 {
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            letter-spacing: -0.025em;
-            background: linear-gradient(90deg, #ffffff 0%, #94a3b8 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
         
         /* Custom VW Blue accents */
         .stButton>button {
-            background-color: #2563eb !important;
+            background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%) !important;
             color: white !important;
-            border-radius: 8px !important;
+            border-radius: 12px !important;
             border: none !important;
-            padding: 0.5rem 2rem !important;
-            font-weight: 600 !important;
-            transition: all 0.3s ease !important;
+            padding: 0.6rem 2rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .stButton>button:hover {
             background-color: #1d4ed8 !important;
