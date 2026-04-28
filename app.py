@@ -60,7 +60,7 @@ with st.sidebar:
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
-    st.image("dashboard_hero.png", use_container_width=True)
+    st.image("dashboard_hero_realistic.png", use_container_width=True)
     st.title("Sistema de Diagnosis")
     
     # Header metrics
