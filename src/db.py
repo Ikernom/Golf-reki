@@ -48,4 +48,15 @@ def init_db() -> None:
             )
             """
         )
+        # Tabla para logs de VCDS
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT NOT NULL,
+                content TEXT NOT NULL,
+                analysis_json TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()

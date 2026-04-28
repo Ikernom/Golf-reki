@@ -77,3 +77,29 @@ def get_last_mileage_for_category(category: str) -> int | None:
             (category,),
         ).fetchone()
     return row["mileage_km"] if row else None
+
+
+def save_log(filename: str, content: str, analysis_json: str) -> int:
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO logs (filename, content, analysis_json) VALUES (?, ?, ?)",
+            (filename, content, analysis_json),
+        )
+        conn.commit()
+        return cursor.lastrowid
+
+
+def list_logs() -> Iterable[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT id, filename, timestamp FROM logs ORDER BY timestamp DESC"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_log(log_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM logs WHERE id = ?", (log_id,)
+        ).fetchone()
+    return dict(row) if row else None

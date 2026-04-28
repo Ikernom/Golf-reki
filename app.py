@@ -14,7 +14,9 @@ from src.maintenance import (
     get_reminders, 
     get_vehicle_info, 
     update_vehicle_info,
-    get_last_mileage_for_category
+    save_log,
+    list_logs,
+    get_log
 )
 from src.styles import apply_styles
 
