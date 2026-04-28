@@ -26,8 +26,8 @@ apply_styles()
 # Sidebar Navigation
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/600px-Volkswagen_logo_2019.svg.png", width=60)
-    st.markdown("### **Golf IV 1.9 TDI**")
-    st.markdown('<p style="background-color: #0e1b40; color: #3b82f6; padding: 5px 12px; border-radius: 20px; font-weight: bold; border: 1px solid #3b82f6; display: inline-block; font-size: 0.8rem;">DEEP BLUE PEARL</p>', unsafe_allow_html=True)
+    st.markdown("### **GOLF MK4 TDI**")
+    st.markdown('<p style="background-color: #1a0000; color: #ff0000; padding: 5px 12px; border-radius: 4px; font-weight: bold; border: 1px solid #ff0000; display: inline-block; font-size: 0.7rem; font-family: monospace; box-shadow: 0 0 10px rgba(255,0,0,0.3);">MFA ACTIVE | ALH 1.9</p>', unsafe_allow_html=True)
     st.markdown("---")
     menu = st.radio(
         "MENÚ PRINCIPAL",
@@ -45,25 +45,23 @@ with st.sidebar:
     last_maint_km = max([e["mileage_km"] for e in entries]) if entries else 0
     min_allowed_km = max(current_km, last_maint_km)
     
-    st.markdown(f"### 📍 {min_allowed_km:,} km")
+    st.markdown(f'<h3 style="color: #4d4dff; text-align: center;">{min_allowed_km:,} KM</h3>', unsafe_allow_html=True)
     
-    with st.expander("Actualizar Kilometraje"):
-        new_km = st.number_input("Nuevo kilometraje", value=min_allowed_km, step=100, min_value=min_allowed_km)
-        if st.button("Guardar KM", use_container_width=True):
+    with st.expander("ACTUALIZAR ODOMETRO"):
+        new_km = st.number_input("Kilómetros", value=min_allowed_km, step=100, min_value=min_allowed_km)
+        if st.button("SET KM", use_container_width=True):
             if new_km > current_km:
                 update_vehicle_info("current_mileage", str(new_km))
-                st.success("¡Kilometraje actualizado!")
+                st.success("OK")
                 st.rerun()
-            else:
-                st.warning("El kilometraje debe ser mayor al actual.")
 
-    st.caption(f"🕒 Próximo Servicio: {min_allowed_km + (10000 - (min_allowed_km % 10000)) if (min_allowed_km % 10000) != 0 else min_allowed_km + 10000} km")
-    st.caption("ALH Care v2.2 • Premium Edition")
+    st.caption(f"PRÓXIMO SERVICIO: {min_allowed_km + (10000 - (min_allowed_km % 10000)) if (min_allowed_km % 10000) != 0 else min_allowed_km + 10000} KM")
+    st.caption("ALH Care v3.0 • Indigo Edition")
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
-    st.image("data/images/hero.png", use_container_width=True)
-    st.title("Estado del Vehículo")
+    st.image("golf_mk4_indigo_dashboard_background_1777377150146.png", use_container_width=True)
+    st.title("Sistema de Diagnosis")
     
     # Header metrics
     entries = list_entries()
