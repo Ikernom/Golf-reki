@@ -148,55 +148,76 @@ elif menu == "📈 Análisis de Logs":
     st.title("Telemetría y Diagnóstico")
     st.markdown("Sube tus logs de VCDS (CSV). **Gemini AI** analizará la estructura y generará las gráficas automáticamente.")
     
-    uploaded = st.file_uploader("Arrastra tu archivo .csv aquí", type=["csv"])
+    # --- HISTORIAL DE LOGS ---
+    saved_logs = list_logs()
+    if saved_logs:
+        log_options = {f"{l['filename']} ({l['timestamp']})": l['id'] for l in saved_logs}
+        selected_log_name = st.selectbox("📂 Cargar log del historial", ["-- Selecciona un log --"] + list(log_options.keys()))
+        
+        if selected_log_name != "-- Selecciona un log --":
+            log_id = log_options[selected_log_name]
+            log_data = get_log(log_id)
+            if log_data:
+                st.session_state["raw_csv"] = log_data["content"]
+                st.session_state["structure"] = json.loads(log_data["analysis_json"])
+                st.info(f"Cargado: {log_data['filename']}")
+
+    st.divider()
+    
+    uploaded = st.file_uploader("Arrastra tu archivo .csv aquí para un nuevo análisis", type=["csv"])
     if uploaded:
-        # Leer el contenido crudo
         raw_csv = uploaded.getvalue().decode("utf-8", errors="ignore")
         
-        # Guardar en session_state para el chat
-        st.session_state["raw_csv"] = raw_csv
-        
-        # Pedir a Gemini que analice la estructura
         with st.spinner("🤖 Gemini está analizando la estructura del log..."):
             structure = ai_analyze_csv(raw_csv)
         
         if "error" in structure and structure["error"]:
             st.error(structure["error"])
         else:
-            # Mostrar análisis del mecánico
-            if structure.get("analysis"):
-                st.subheader("🔍 Análisis del Mecánico Virtual")
-                st.markdown(structure["analysis"])
-            
-            # Generar gráficas
-            st.divider()
-            st.subheader("📈 Gráficas por Grupo")
-            
-            charts = ai_build_charts(raw_csv, structure)
-            
-            if charts:
-                tab_names = [f"{c['name']} ({c['gid']})" for c in charts]
-                tabs = st.tabs(tab_names)
-                
-                for tab, chart in zip(tabs, charts):
-                    with tab:
-                        st.plotly_chart(chart["fig"], use_container_width=True)
-            else:
-                st.warning("No se pudieron generar gráficas. Prueba a preguntar en el chat.")
-            
-            # Datos crudos
-            with st.expander("📋 Datos crudos del CSV"):
-                try:
-                    sep = structure.get("separator", ",")
-                    header = structure.get("header_rows", 0)
-                    import io
-                    df_raw = pd.read_csv(io.StringIO(raw_csv), sep=sep, header=header, on_bad_lines='skip')
-                    st.dataframe(df_raw, use_container_width=True, hide_index=True)
-                except Exception:
-                    st.code(raw_csv[:3000], language="csv")
+            # Guardar en DB para siempre
+            save_log(uploaded.name, raw_csv, json.dumps(structure))
+            st.session_state["raw_csv"] = raw_csv
+            st.session_state["structure"] = structure
+            st.success("Log analizado y guardado en el historial.")
 
-    # --- CHAT IA (siempre visible si hay un log cargado) ---
-    if "raw_csv" in st.session_state:
+    # --- MOSTRAR RESULTADOS (si hay un log cargado en state) ---
+    if "raw_csv" in st.session_state and "structure" in st.session_state:
+        raw_csv = st.session_state["raw_csv"]
+        structure = st.session_state["structure"]
+        
+        # Mostrar análisis del mecánico
+        if structure.get("analysis"):
+            st.subheader("🔍 Análisis del Mecánico Virtual")
+            st.markdown(structure["analysis"])
+        
+        # Generar gráficas
+        st.divider()
+        st.subheader("📈 Gráficas por Grupo")
+        
+        charts = ai_build_charts(raw_csv, structure)
+        
+        if charts:
+            tab_names = [f"{c['name']} ({c['gid']})" for c in charts]
+            tabs = st.tabs(tab_names)
+            
+            for tab, chart in zip(tabs, charts):
+                with tab:
+                    st.plotly_chart(chart["fig"], use_container_width=True)
+        else:
+            st.warning("No se pudieron generar gráficas. Prueba a preguntar en el chat.")
+        
+        # Datos crudos
+        with st.expander("📋 Datos crudos del CSV"):
+            try:
+                sep = structure.get("separator", ",")
+                header = structure.get("header_rows", 0)
+                import io
+                df_raw = pd.read_csv(io.StringIO(raw_csv), sep=sep, header=header, on_bad_lines='skip')
+                st.dataframe(df_raw, use_container_width=True, hide_index=True)
+            except Exception:
+                st.code(raw_csv[:3000], language="csv")
+
+        # --- CHAT IA ---
         st.divider()
         st.subheader("🤖 Mecánico Virtual (Chat)")
         
@@ -207,14 +228,14 @@ elif menu == "📈 Análisis de Logs":
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-        if prompt := st.chat_input("Pregunta sobre el log (ej: ¿El turbo va bien?)"):
+        if chat_prompt := st.chat_input("Pregunta sobre el log (ej: ¿El turbo va bien?)"):
             with st.chat_message("user"):
-                st.write(prompt)
-            st.session_state.ai_chat_history.append({"role": "user", "content": prompt})
+                st.write(chat_prompt)
+            st.session_state.ai_chat_history.append({"role": "user", "content": chat_prompt})
             
             with st.chat_message("assistant", avatar="🏎️"):
                 with st.spinner("Analizando..."):
-                    response = ai_chat_response(st.session_state["raw_csv"], prompt)
+                    response = ai_chat_response(raw_csv, chat_prompt)
                     st.write(response)
             st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
 
