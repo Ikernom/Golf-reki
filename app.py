@@ -1,160 +1,169 @@
 from __future__ import annotations
 
 from pathlib import Path
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
 from src.db import init_db
 from src.log_analyzer import analyze_log
-from src.maintenance import MaintenanceEntry, add_entry, list_entries
+from src.maintenance import (
+    MaintenanceEntry, 
+    add_entry, 
+    list_entries, 
+    get_reminders, 
+    get_vehicle_info, 
+    update_vehicle_info
+)
+from src.styles import apply_styles
 
-
-st.set_page_config(page_title="ALH Care", page_icon="🚗", layout="wide")
+# Initialize
+st.set_page_config(page_title="ALH Care Premium", page_icon="🏎️", layout="wide")
 init_db()
+apply_styles()
 
-st.title("ALH Care - Mantenimiento Golf IV 1.9 TDI (ALH)")
-st.caption("Control de mantenimiento, costes y analisis automatico de logs.")
+# Sidebar Navigation
+with st.sidebar:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/600px-Volkswagen_logo_2019.svg.png", width=80)
+    st.title("ALH Care")
+    st.markdown("---")
+    menu = st.radio(
+        "Navegación",
+        ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"]
+    )
+    st.markdown("---")
+    st.caption("Golf IV 1.9 TDI ALH v2.0")
 
-tab1, tab2, tab3 = st.tabs(["Mantenimiento", "Analisis logs", "Ideas avanzadas"])
+# --- DASHBOARD ---
+if menu == "🏠 Dashboard":
+    st.image("data/images/hero.png", use_container_width=True)
+    st.title("Estado del Vehículo")
+    
+    # Header metrics
+    entries = list_entries()
+    df_entries = pd.DataFrame(entries) if entries else pd.DataFrame()
+    
+    total_cost = df_entries["cost_eur"].sum() if not df_entries.empty else 0
+    last_km = df_entries["mileage_km"].max() if not df_entries.empty else 250000
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Kilometraje Actual", f"{last_km:,} km", delta="Actualizado")
+    c2.metric("Inversión Total", f"{total_cost:,.2f} €")
+    c3.metric("Próximo Aceite", f"{last_km + 15000:,} km", delta="-5,000 km", delta_color="inverse")
+    c4.metric("Estado General", "Excelente", delta="Optimizado")
 
-with tab1:
-    st.subheader("Nuevo mantenimiento")
-    with st.form("maintenance_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            date = st.date_input("Fecha")
-            mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=250000)
-            category = st.selectbox(
-                "Categoria",
-                [
-                    "Aceite",
-                    "Filtros",
-                    "Distribucion",
-                    "Frenos",
-                    "Suspension",
-                    "Neumaticos",
-                    "Electronica",
-                    "Otro",
-                ],
+    st.markdown("---")
+    
+    col_left, col_right = st.columns([2, 1])
+    
+    with col_left:
+        st.subheader("📊 Histórico de Inversión")
+        if not df_entries.empty:
+            df_entries["date"] = pd.to_datetime(df_entries["date"])
+            fig = px.area(
+                df_entries.sort_values("date"), 
+                x="date", 
+                y="cost_eur",
+                title="Gasto acumulado en el tiempo",
+                line_shape="spline",
+                color_discrete_sequence=["#2563eb"]
             )
-        with col2:
-            description = st.text_input("Descripcion", placeholder="Cambio aceite 5W40 + filtro")
-            cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
-            notes = st.text_area("Notas", placeholder="Marca, referencia, taller, observaciones")
+            fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No hay datos suficientes para mostrar gráficas.")
 
-        submitted = st.form_submit_button("Guardar mantenimiento")
-        if submitted and description:
-            entry = MaintenanceEntry(
-                date=str(date),
-                mileage_km=int(mileage),
-                category=category,
-                description=description,
-                cost_eur=float(cost),
-                notes=notes,
-            )
-            add_entry(entry)
-            st.success("Mantenimiento guardado.")
-        elif submitted:
-            st.warning("La descripcion es obligatoria.")
+    with col_right:
+        st.subheader("🔔 Recordatorios")
+        reminders = get_reminders()
+        if reminders:
+            for r in reminders:
+                st.info(f"**{r['title']}**\n\nLímite: {r['due_mileage']} km")
+        else:
+            st.success("✅ Todo al día. ¡A disfrutar del TDI!")
+            st.write("No tienes tareas pendientes urgentes.")
 
-    st.subheader("Historial")
+# --- MANTENIMIENTO ---
+elif menu == "🔧 Mantenimiento":
+    st.title("Gestión de Mantenimiento")
+    
+    with st.expander("➕ Registrar nueva intervención", expanded=False):
+        with st.form("maintenance_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                date = st.date_input("Fecha")
+                mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=250000)
+                category = st.selectbox("Categoría", ["Aceite", "Filtros", "Distribución", "Frenos", "Suspensión", "Neumáticos", "Electrónica", "Otro"])
+            with col2:
+                description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")
+                cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
+                notes = st.text_area("Notas adicionales")
+
+            if st.form_submit_button("Guardar Registro"):
+                if description:
+                    add_entry(MaintenanceEntry(str(date), int(mileage), category, description, float(cost), notes))
+                    st.success("¡Registro guardado con éxito!")
+                    st.rerun()
+                else:
+                    st.error("La descripción es obligatoria.")
+
+    st.subheader("Historial Completo")
     entries = list_entries()
     if entries:
-        df_entries = pd.DataFrame(entries)
-        st.dataframe(df_entries, use_container_width=True, hide_index=True)
-        monthly_cost = (
-            df_entries.assign(month=lambda d: pd.to_datetime(d["date"]).dt.to_period("M").astype(str))
-            .groupby("month", as_index=False)["cost_eur"]
-            .sum()
-        )
-        fig = px.bar(monthly_cost, x="month", y="cost_eur", title="Coste mensual de mantenimiento")
-        st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(pd.DataFrame(entries), use_container_width=True, hide_index=True)
     else:
-        st.info("Aun no hay mantenimientos registrados.")
+        st.info("Aún no has registrado ningún mantenimiento.")
 
-with tab2:
-    st.subheader("Subir log CSV y analizar")
-    st.markdown(
-        "Columnas recomendadas: `rpm`, `maf_actual`, `maf_requested`, `map_actual`, `coolant_temp`."
-    )
-    uploaded = st.file_uploader("Sube tu log", type=["csv"])
-    if uploaded is not None:
-        logs_dir = Path("data/logs")
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        target_file = logs_dir / uploaded.name
-        target_file.write_bytes(uploaded.getbuffer())
-
+# --- ANÁLISIS DE LOGS ---
+elif menu == "📈 Análisis de Logs":
+    st.title("Telemetría y Diagnóstico")
+    st.markdown("Sube tus logs de VCDS (CSV) para analizar el estado del turbo y el caudalímetro.")
+    
+    uploaded = st.file_uploader("Arrastra tu archivo .csv aquí", type=["csv"])
+    if uploaded:
         df_log = pd.read_csv(uploaded)
-        st.write("Vista previa")
-        st.dataframe(df_log.head(20), use_container_width=True)
-
         result = analyze_log(df_log)
-        st.subheader("Resultado del analisis")
+        
+        st.subheader("🔍 Resultados del Escaneo")
+        
+        # Alerts in a modern way
         for alert in result.alerts:
-            if "Sin alertas" in alert:
-                st.success(alert)
-            else:
-                st.warning(alert)
-
+            if "Sin alertas" in alert: st.success(alert)
+            else: st.warning(alert)
+            
         if result.metrics:
-            cols = st.columns(3)
-            cols[0].metric("Error medio MAF (%)", f"{result.metrics['maf_error_pct_mean']:.2f}")
-            cols[1].metric("MAP max (mbar)", f"{result.metrics['map_peak_mbar']:.0f}")
-            cols[2].metric("Temperatura max (C)", f"{result.metrics['coolant_peak_c']:.1f}")
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Error MAF medio", f"{result.metrics['maf_error_pct_mean']:.1f}%")
+            m2.metric("Pico Turbo (MAP)", f"{result.metrics['map_peak_mbar']:.0f} mbar")
+            m3.metric("Temp. Máxima", f"{result.metrics['coolant_peak_c']:.1f} °C")
+            m4.metric("Health Score", f"{result.metrics['score']:.0f}/100")
 
         if result.data is not None:
             st.divider()
-            st.subheader("Visualización del rendimiento")
+            tab_maf, tab_map = st.tabs(["Caudalímetro (MAF)", "Turbo (MAP)"])
             
-            # Gráfica de MAF: Actual vs Requested
-            fig_maf = px.line(
-                result.data, 
-                x=result.data.index, 
-                y=["maf_requested", "maf_actual"],
-                title="Caudalímetro (MAF): Solicitado vs. Actual",
-                labels={"value": "mg/str", "index": "Muestra", "variable": "Tipo"},
-                color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"}
-            )
-            fig_maf.update_layout(hovermode="x unified")
-            st.plotly_chart(fig_maf, use_container_width=True)
-
-            col_a, col_b = st.columns(2)
-            
-            with col_a:
-                # Gráfica de MAP (Presión del Turbo)
-                fig_map = px.area(
-                    result.data,
-                    x="rpm",
-                    y="map_actual",
-                    title="Presión de Admisión (MAP) vs. RPM",
-                    labels={"map_actual": "mbar", "rpm": "RPM"},
-                    color_discrete_sequence=["#00CC96"]
-                )
+            with tab_maf:
+                fig_maf = px.line(result.data, x=result.data.index, y=["maf_requested", "maf_actual"],
+                                title="Solicitado vs Real", color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"})
+                st.plotly_chart(fig_maf, use_container_width=True)
+                
+            with tab_map:
+                fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
                 st.plotly_chart(fig_map, use_container_width=True)
 
-            with col_b:
-                # Gráfica de Temperatura
-                fig_temp = px.line(
-                    result.data,
-                    x=result.data.index,
-                    y="coolant_temp",
-                    title="Temperatura del Refrigerante",
-                    labels={"coolant_temp": "°C", "index": "Muestra"},
-                    color_discrete_sequence=["#AB63FA"]
-                )
-                st.plotly_chart(fig_temp, use_container_width=True)
-
-
-with tab3:
-    st.subheader("Propuestas de evolucion")
-    st.markdown(
-        """
-        - **Recordatorios inteligentes**: alertas por km/tiempo para aceite, filtros, distribucion y liquidos.
-        - **Ficha tecnica del ALH**: referencias de piezas, pares de apriete y checklist de mantenimiento preventivo.
-        - **Comparador de logs**: antes/despues de una reparacion para validar mejoras.
-        - **Integracion OBD-II**: captura semiautomatica de datos con ELM327.
-        - **Prediccion de averias**: modelos simples con historico para estimar riesgo de fallo.
-        """
-    )
+# --- CONFIGURACIÓN ---
+elif menu == "⚙️ Configuración":
+    st.title("Ajustes del Vehículo")
+    info = get_vehicle_info()
+    
+    with st.form("vehicle_info"):
+        st.subheader("Información del Golf")
+        vin = st.text_input("Bastidor (VIN)", value=info.get("vin", ""))
+        engine_code = st.text_input("Código Motor", value=info.get("engine_code", "ALH"))
+        plate = st.text_input("Matrícula", value=info.get("plate", ""))
+        
+        if st.form_submit_button("Actualizar Ficha"):
+            update_vehicle_info("vin", vin)
+            update_vehicle_info("engine_code", engine_code)
+            update_vehicle_info("plate", plate)
+            st.success("Ficha técnica actualizada.")

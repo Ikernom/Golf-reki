@@ -46,3 +46,25 @@ def list_entries() -> Iterable[dict]:
             """
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def get_reminders() -> Iterable[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM reminders WHERE is_completed = 0 ORDER BY due_mileage ASC"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_vehicle_info() -> dict:
+    with get_connection() as conn:
+        rows = conn.execute("SELECT key, value FROM vehicle_info").fetchall()
+    return {row["key"]: row["value"] for row in rows}
+
+
+def update_vehicle_info(key: str, value: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO vehicle_info (key, value) VALUES (?, ?)", (key, value)
+        )
+        conn.commit()
