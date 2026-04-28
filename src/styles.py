@@ -5,140 +5,102 @@ def apply_styles():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
-        /* Main App Reset */
+        /* Global Reset */
         .main {
-            background-color: #0a0a0a;
-            color: #ffffff;
-            font-family: 'JetBrains+Mono', monospace;
+            background-color: #050505 !important;
+            color: #ffffff !important;
         }
 
-        /* Sidebar - Center Console Style */
+        /* Sidebar - Mk4 Center Console */
         [data-testid="stSidebar"] {
-            background-color: #121212 !important;
-            border-right: 2px solid #222;
-            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            background-color: #111111 !important;
+            border-right: 2px solid #222 !important;
         }
         
         [data-testid="stSidebar"] h3 {
             color: #ff0000 !important;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-            font-family: 'JetBrains+Mono', monospace;
-            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.7) !important;
+            font-family: 'JetBrains Mono', monospace !important;
         }
 
-        /* Navigation Radio - Red Backlit Feel */
-        div[data-testid="stSidebarUserContent"] .st-emotion-cache-1647z6a {
-            background-color: transparent !important;
-            border-left: 4px solid transparent;
-            transition: all 0.3s ease;
-        }
-        
-        div[data-testid="stSidebarUserContent"] .st-emotion-cache-1647z6a:hover {
-            background-color: rgba(255, 0, 0, 0.1) !important;
-            border-left: 4px solid #ff0000;
-        }
-
-        /* Metrics - MFA (Multi-Function Display) Style */
+        /* Metrics - Iconic Indigo and Red LCD */
         [data-testid="stMetric"] {
-            background: #1a0000 !important;
-            border: 2px solid #330000 !important;
-            border-radius: 4px !important;
-            padding: 15px !important;
-            box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.2);
+            background: #000000 !important;
+            border: 1px solid #440000 !important;
+            border-radius: 2px !important;
+            padding: 1rem !important;
+            box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.1) !important;
         }
         
-        [data-testid="stMetricLabel"] {
-            color: #ff3333 !important;
-            font-size: 0.8rem !important;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        [data-testid="stMetricLabel"] p {
+            color: #ff4444 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            text-transform: uppercase !important;
+            font-size: 0.75rem !important;
         }
         
-        [data-testid="stMetricValue"] {
+        [data-testid="stMetricValue"] div {
             color: #ff0000 !important;
-            font-family: 'JetBrains+Mono', monospace !important;
-            text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+            font-family: 'JetBrains Mono', monospace !important;
+            text-shadow: 0 0 12px rgba(255, 0, 0, 0.9) !important;
             font-weight: 700 !important;
         }
 
-        /* Indigo Gauges Accents */
-        h1, h2, h3 {
-            color: #4d4dff !important;
-            text-shadow: 0 0 15px rgba(77, 77, 255, 0.6);
-            font-family: 'JetBrains+Mono', monospace;
+        /* Titles - Indigo Gauge Glow */
+        h1, h2, h3, .stSubheader {
+            color: #2e5bff !important;
+            text-shadow: 0 0 20px rgba(46, 91, 255, 0.8) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            text-transform: uppercase !important;
         }
 
-        /* Buttons - Red Switches */
-        .stButton>button {
-            background: #1a1a1a !important;
+        /* Buttons - Backlit Switches */
+        div.stButton > button {
+            background-color: #1a1a1a !important;
             color: #ff0000 !important;
-            border: 1px solid #ff0000 !important;
+            border: 1.5px solid #ff0000 !important;
             border-radius: 4px !important;
-            font-family: 'JetBrains+Mono', monospace !important;
-            text-transform: uppercase;
-            box-shadow: 0 0 5px rgba(255, 0, 0, 0.2) !important;
-            transition: all 0.2s !important;
+            padding: 0.5rem 1rem !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.3) !important;
+            transition: all 0.2s ease-in-out !important;
         }
         
-        .stButton>button:hover {
-            background: #220000 !important;
-            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5) !important;
-            color: #ff5555 !important;
+        div.stButton > button:hover {
+            background-color: #2a0000 !important;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
+            color: #ff4444 !important;
+            transform: translateY(-1px);
         }
 
-        /* Dataframes & Tables */
-        .stDataFrame {
-            border: 1px solid #333 !important;
-            border-radius: 8px;
+        /* Tabs - Blue Selection */
+        button[data-baseweb="tab"] {
+            color: #666 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+        
+        button[aria-selected="true"] {
+            background-color: #2e5bff !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(46, 91, 255, 0.5) !important;
         }
 
-        /* Custom Card for Garage Items */
-        .garage-card {
-            background: #111;
-            border-left: 5px solid #4d4dff;
-            padding: 20px;
-            border-radius: 0 10px 10px 0;
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        /* Tabs Style */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 10px;
-            background-color: transparent;
-        }
-
-        .stTabs [data-baseweb="tab"] {
-            background-color: #1a1a1a !important;
-            border: 1px solid #333 !important;
-            color: #888 !important;
-            border-radius: 4px 4px 0 0 !important;
-            padding: 10px 20px !important;
-        }
-
-        .stTabs [aria-selected="true"] {
-            background-color: #4d4dff !important;
-            color: white !important;
-            border-color: #4d4dff !important;
-            box-shadow: 0 0 10px rgba(77, 77, 255, 0.5);
-        }
-
-        /* Chat Messages - Diagnostic Readout Style */
+        /* Chat Messages - Diagnostic Log Style */
         [data-testid="stChatMessage"] {
-            background-color: #1a1a1a !important;
-            border-left: 3px solid #ff0000 !important;
-            border-radius: 0 8px 8px 0 !important;
-            margin-bottom: 10px !important;
+            background-color: #0a0a0a !important;
+            border-left: 4px solid #ff0000 !important;
+            margin-bottom: 0.5rem !important;
+            border-radius: 0 10px 10px 0 !important;
         }
         
-        [data-testid="stChatMessage"] p {
-            font-family: 'JetBrains+Mono', monospace !important;
-            color: #ccc !important;
+        [data-testid="stChatMessageContent"] p {
+            color: #00ff00 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.9rem !important;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
         }
 
-        /* Hide elements */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {background: transparent !important;}
+        /* Hide Streamlit elements */
+        #MainMenu, footer, header { visibility: hidden; }
         </style>
     """, unsafe_allow_html=True)

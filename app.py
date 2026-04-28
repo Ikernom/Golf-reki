@@ -60,7 +60,7 @@ with st.sidebar:
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
-    st.image("golf_mk4_indigo_dashboard_background_1777377150146.png", use_container_width=True)
+    st.image("dashboard_hero.png", use_container_width=True)
     st.title("Sistema de Diagnosis")
     
     # Header metrics
