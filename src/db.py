@@ -49,7 +49,7 @@ def init_db() -> None:
             """
         )
         # Tabla para logs de VCDS
-        cursor.execute('''
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT NOT NULL,
