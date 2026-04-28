@@ -60,44 +60,61 @@ with st.sidebar:
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
-    # Get dynamic data
     from datetime import datetime
+    from PIL import Image, ImageDraw, ImageFont
+    import io
+
     now = datetime.now().strftime("%H:%M")
-    
     info = get_vehicle_info()
     last_km = int(info.get("current_mileage", 280000))
-    
-    # Custom HTML for Dashboard with overlays
-    # Note: Using base64 to avoid path issues with background-image in HTML
-    import base64
-    def get_base64(path):
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    
+
     try:
-        img_b64 = get_base64("dashboard_final.jpg")
-        st.markdown(f"""
-            <div style="position: relative; width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-                <img src="data:image/jpeg;base64,{img_b64}" style="width: 100%; display: block;">
-                
-                <!-- Time Overlay (Left LCD) -->
-                <div style="position: absolute; top: 73.5%; left: 31%; transform: translate(-50%, -50%); 
-                            color: #a3c2ff; text-shadow: 0 0 10px rgba(0,100,255,0.8); font-family: 'JetBrains Mono', monospace; 
-                            font-size: 1.8vw; font-weight: bold; letter-spacing: 2px;">
-                    {now}
-                </div>
-                
-                <!-- Mileage Overlay (Right LCD) -->
-                <div style="position: absolute; top: 73.5%; left: 73%; transform: translate(-50%, -50%); 
-                            color: #a3c2ff; text-shadow: 0 0 10px rgba(0,100,255,0.8); font-family: 'JetBrains Mono', monospace; 
-                            font-size: 1.2vw; font-weight: bold; letter-spacing: 1px; text-align: center; line-height: 1;">
-                    {last_km}<br>
-                    <span style="font-size: 0.7vw; opacity: 0.7;">ODO</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # Load base image
+        img = Image.open("dashboard_final.jpg").copy()
+        draw = ImageDraw.Draw(img)
+        w, h = img.size
+
+        # Try to load a monospace font, fallback to default
+        font_size_time = int(h * 0.045)
+        font_size_km = int(h * 0.035)
+        try:
+            font_time = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", font_size_time)
+            font_km = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", font_size_km)
+        except Exception:
+            font_time = ImageFont.load_default()
+            font_km = ImageFont.load_default()
+
+        # LCD blue color matching the real dashboard
+        lcd_blue = (140, 180, 255)
+
+        # --- Draw TIME on Left LCD ---
+        # Position: bottom-left area of tachometer
+        time_x = int(w * 0.22)
+        time_y = int(h * 0.78)
+        # Get text size for centering
+        bbox = draw.textbbox((0, 0), now, font=font_time)
+        tw = bbox[2] - bbox[0]
+        draw.text((time_x - tw // 2, time_y), now, fill=lcd_blue, font=font_time)
+
+        # --- Draw KM on Right LCD ---
+        # Position: bottom-right area of speedometer
+        km_text = f"{last_km}"
+        km_x = int(w * 0.78)
+        km_y = int(h * 0.78)
+        bbox = draw.textbbox((0, 0), km_text, font=font_km)
+        tw = bbox[2] - bbox[0]
+        draw.text((km_x - tw // 2, km_y), km_text, fill=lcd_blue, font=font_km)
+
+        # Convert to bytes for Streamlit
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=95)
+        buf.seek(0)
+
+        st.image(buf, use_container_width=True)
+
     except Exception as e:
-        st.warning(f"No se pudo cargar la imagen del salpicadero: {e}")
+        st.warning(f"Error al renderizar el salpicadero: {e}")
+        st.image("dashboard_final.jpg", use_container_width=True)
 
     st.title("Sistema de Diagnosis")
     
