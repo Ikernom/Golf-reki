@@ -60,64 +60,14 @@ with st.sidebar:
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
-    from datetime import datetime
-    from PIL import Image, ImageDraw, ImageFont
-    import io
-
-    now = datetime.now().strftime("%H:%M")
-    info = get_vehicle_info()
-    last_km = int(info.get("current_mileage", 280000))
-
-    try:
-        # Load base image
-        img = Image.open("dashboard_final.jpg").copy()
-        draw = ImageDraw.Draw(img)
-        w, h = img.size
-
-        # LCD blue color matching the real dashboard
-        lcd_blue = (140, 180, 255)
-
-        # Font sizes - small enough to fit inside the tiny LCD rectangles
-        font_size_time = int(h * 0.028)
-        font_size_km = int(h * 0.022)
-        try:
-            font_time = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", font_size_time)
-            font_km = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", font_size_km)
-        except Exception:
-            font_time = ImageFont.load_default()
-            font_km = ImageFont.load_default()
-
-        # --- Draw TIME inside Left LCD ---
-        time_x = int(w * 0.275)
-        time_y = int(h * 0.695)
-        bbox = draw.textbbox((0, 0), now, font=font_time)
-        tw = bbox[2] - bbox[0]
-        th = bbox[3] - bbox[1]
-        draw.text((time_x - tw // 2, time_y - th // 2), now, fill=lcd_blue, font=font_time)
-
-        # --- Draw KM inside Right LCD ---
-        km_text = f"{last_km}"
-        km_x = int(w * 0.76)
-        km_y = int(h * 0.695)
-        bbox = draw.textbbox((0, 0), km_text, font=font_km)
-        tw = bbox[2] - bbox[0]
-        th = bbox[3] - bbox[1]
-        draw.text((km_x - tw // 2, km_y - th // 2), km_text, fill=lcd_blue, font=font_km)
-
-        # Convert to bytes for Streamlit
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=95)
-        buf.seek(0)
-
-        st.image(buf, use_container_width=True)
-
-    except Exception as e:
-        st.warning(f"Error al renderizar el salpicadero: {e}")
-        st.image("dashboard_final.jpg", use_container_width=True)
+    # Placeholder para la imagen del salpicadero
+    st.image("dashboard_final.jpg", use_container_width=True)
 
     st.title("Sistema de Diagnosis")
     
     # Header metrics
+    info = get_vehicle_info()
+    last_km = int(info.get("current_mileage", 280000))
     entries = list_entries()
     df_entries = pd.DataFrame(entries) if entries else pd.DataFrame()
     total_cost = df_entries["cost_eur"].sum() if not df_entries.empty else 0
