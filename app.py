@@ -75,10 +75,10 @@ if menu == "🏠 Dashboard":
             return base64.b64encode(f.read()).decode()
     
     try:
-        img_b64 = get_base64("dashboard_final.png")
+        img_b64 = get_base64("dashboard_final.jpg")
         st.markdown(f"""
             <div style="position: relative; width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-                <img src="data:image/png;base64,{img_b64}" style="width: 100%; display: block;">
+                <img src="data:image/jpeg;base64,{img_b64}" style="width: 100%; display: block;">
                 
                 <!-- Time Overlay (Left LCD) -->
                 <div style="position: absolute; top: 73.5%; left: 31%; transform: translate(-50%, -50%); 
@@ -96,8 +96,8 @@ if menu == "🏠 Dashboard":
                 </div>
             </div>
         """, unsafe_allow_html=True)
-    except Exception:
-        st.image("dashboard_final.png", use_container_width=True)
+    except Exception as e:
+        st.warning(f"No se pudo cargar la imagen del salpicadero: {e}")
 
     st.title("Sistema de Diagnosis")
     
