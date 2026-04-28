@@ -6,7 +6,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.db import init_db
-from src.log_analyzer import clean_vcds_log, analyze_groups
+from src.ai_assistant import ai_analyze_csv, ai_build_charts, ai_chat_response
 from src.maintenance import (
     MaintenanceEntry, 
     add_entry, 
@@ -16,7 +16,6 @@ from src.maintenance import (
     update_vehicle_info,
     get_last_mileage_for_category
 )
-from src.ai_assistant import get_ai_response
 from src.styles import apply_styles
 
 # Initialize
@@ -145,126 +144,77 @@ elif menu == "🔧 Mantenimiento":
 # --- ANÁLISIS DE LOGS ---
 elif menu == "📈 Análisis de Logs":
     st.title("Telemetría y Diagnóstico")
-    st.markdown("Sube tus logs de VCDS (CSV) para analizar el estado del turbo y el caudalímetro.")
+    st.markdown("Sube tus logs de VCDS (CSV). **Gemini AI** analizará la estructura y generará las gráficas automáticamente.")
     
     uploaded = st.file_uploader("Arrastra tu archivo .csv aquí", type=["csv"])
     if uploaded:
-        # Parser multicanal de VCDS
-        parsed = clean_vcds_log(uploaded)
+        # Leer el contenido crudo
+        raw_csv = uploaded.getvalue().decode("utf-8", errors="ignore")
         
-        if isinstance(parsed, str):
-            st.error(f"❌ Error al leer el log: {parsed}")
+        # Guardar en session_state para el chat
+        st.session_state["raw_csv"] = raw_csv
+        
+        # Pedir a Gemini que analice la estructura
+        with st.spinner("🤖 Gemini está analizando la estructura del log..."):
+            structure = ai_analyze_csv(raw_csv)
+        
+        if "error" in structure and structure["error"]:
+            st.error(structure["error"])
         else:
-            result = analyze_groups(parsed)
+            # Mostrar análisis del mecánico
+            if structure.get("analysis"):
+                st.subheader("🔍 Análisis del Mecánico Virtual")
+                st.markdown(structure["analysis"])
             
-            st.subheader("🔍 Resultados del Escaneo")
-        
-            # Alertas
-            for alert in result.alerts:
-                if "✅" in alert:
-                    st.success(alert)
-                elif "📊" in alert:
-                    st.info(alert)
-                else:
-                    st.warning(alert)
-            
-            # Métricas si hay datos de motor
-            metric_cols = st.columns(3)
-            if "score" in result.metrics:
-                metric_cols[0].metric("Health Score", f"{result.metrics['score']:.0f}/100")
-            if "map_peak_mbar" in result.metrics:
-                metric_cols[1].metric("Pico Turbo", f"{result.metrics['map_peak_mbar']:.0f} mbar")
-            if "maf_error_pct_mean" in result.metrics:
-                metric_cols[2].metric("Error MAF", f"{result.metrics['maf_error_pct_mean']:.1f}%")
-
-            # --- GRÁFICAS POR GRUPO ---
+            # Generar gráficas
             st.divider()
             st.subheader("📈 Gráficas por Grupo")
-
-            # Nombres descriptivos para los grupos conocidos
-            GROUP_NAMES = {
-                "011": "Turbo Boost Analysis",
-                "003": "Air Mass / MAF Analysis",
-                "008": "Torque / Injection Limits",
-                "001": "Engine Basics",
-                "002": "Idle / Lambda",
-                "004": "Timing / Injection Timing",
-                "005": "Misc Sensors",
-                "010": "EGR / Emissions",
-                "012": "Glow Plugs",
-                "014": "Injection Quantity",
-                "015": "Fuel Pressure",
-            }
-
-            # Crear una pestaña por grupo
-            if result.groups:
-                tab_names = []
-                for g in result.groups:
-                    nice_name = GROUP_NAMES.get(g.group_id, f"Group {g.group_id}")
-                    tab_names.append(f"{g.group_label}: {nice_name}")
-                
+            
+            charts = ai_build_charts(raw_csv, structure)
+            
+            if charts:
+                tab_names = [f"{c['name']} ({c['gid']})" for c in charts]
                 tabs = st.tabs(tab_names)
                 
-                for tab, group in zip(tabs, result.groups):
+                for tab, chart in zip(tabs, charts):
                     with tab:
-                        df = group.data.copy()
-                        
-                        # Usar Time Stamp como eje X si existe
-                        x_col = "Time Stamp" if "Time Stamp" in df.columns else df.index
-                        
-                        # Columnas de datos (excluir Marker y Time Stamp)
-                        data_cols = [c for c in df.columns if c not in ("Marker", "Time Stamp")]
-                        
-                        if not data_cols:
-                            st.warning("Este grupo no tiene columnas de datos.")
-                            continue
-                        
-                        # Gráfica con todas las columnas del grupo
-                        nice_name = GROUP_NAMES.get(group.group_id, f"Group {group.group_id}")
-                        fig = px.line(
-                            df, 
-                            x=x_col if isinstance(x_col, str) else None,
-                            y=data_cols,
-                            title=f"{nice_name} (Group {group.group_id})",
-                            labels={"value": "Valor", "variable": "Canal"},
-                        )
-                        fig.update_layout(
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                            hovermode="x unified"
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Tabla de datos expandible
-                        with st.expander(f"📋 Datos crudos ({len(df)} muestras)"):
-                            st.dataframe(df, use_container_width=True, hide_index=True)
-
-            # --- ASISTENTE IA ---
-            st.divider()
-            st.subheader("🤖 Mecánico Virtual (AI)")
+                        st.plotly_chart(chart["fig"], use_container_width=True)
+            else:
+                st.warning("No se pudieron generar gráficas. Prueba a preguntar en el chat.")
             
-            if "ai_chat_history" not in st.session_state:
-                st.session_state.ai_chat_history = []
+            # Datos crudos
+            with st.expander("📋 Datos crudos del CSV"):
+                try:
+                    sep = structure.get("separator", ",")
+                    header = structure.get("header_rows", 0)
+                    import io
+                    df_raw = pd.read_csv(io.StringIO(raw_csv), sep=sep, header=header, on_bad_lines='skip')
+                    st.dataframe(df_raw, use_container_width=True, hide_index=True)
+                except Exception:
+                    st.code(raw_csv[:3000], language="csv")
 
-            # Mostrar historial de chat
-            for msg in st.session_state.ai_chat_history:
-                with st.chat_message(msg["role"]):
-                    st.write(msg["content"])
+    # --- CHAT IA (siempre visible si hay un log cargado) ---
+    if "raw_csv" in st.session_state:
+        st.divider()
+        st.subheader("🤖 Mecánico Virtual (Chat)")
+        
+        if "ai_chat_history" not in st.session_state:
+            st.session_state.ai_chat_history = []
 
-            # Para la IA, combinamos todos los grupos en un solo DataFrame
-            all_data = pd.concat([g.data for g in result.groups], axis=1) if result.groups else pd.DataFrame()
+        for msg in st.session_state.ai_chat_history:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
 
-            if prompt := st.chat_input("Pregunta algo sobre este log (ej: ¿Ves algún fallo de turbo?)"):
-                with st.chat_message("user"):
-                    st.write(prompt)
-                st.session_state.ai_chat_history.append({"role": "user", "content": prompt})
-                
-                with st.chat_message("assistant", avatar="🏎️"):
-                    with st.spinner("Analizando telemetría..."):
-                        response = get_ai_response(all_data, prompt)
-                        st.write(response)
-                st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
+        if prompt := st.chat_input("Pregunta sobre el log (ej: ¿El turbo va bien?)"):
+            with st.chat_message("user"):
+                st.write(prompt)
+            st.session_state.ai_chat_history.append({"role": "user", "content": prompt})
+            
+            with st.chat_message("assistant", avatar="🏎️"):
+                with st.spinner("Analizando..."):
+                    response = ai_chat_response(st.session_state["raw_csv"], prompt)
+                    st.write(response)
+            st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
 
 # --- CONFIGURACIÓN ---
 elif menu == "⚙️ Configuración":
