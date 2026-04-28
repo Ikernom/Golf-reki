@@ -136,44 +136,55 @@ elif menu == "📈 Análisis de Logs":
             
             st.subheader("🔍 Resultados del Escaneo")
         
-        # Alerts in a modern way
-        for alert in result.alerts:
-            if "Sin alertas" in alert: st.success(alert)
-            else: st.warning(alert)
+            # Alertas
+            for alert in result.alerts:
+                if "✅" in alert or "OK" in alert:
+                    st.success(alert)
+                elif "📊" in alert:
+                    st.info(alert)
+                else:
+                    st.warning(alert)
             
-        if result.metrics:
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Error MAF medio", f"{result.metrics['maf_error_pct_mean']:.1f}%")
-            m2.metric("Pico Turbo (MAP)", f"{result.metrics['map_peak_mbar']:.0f} mbar")
-            m3.metric("Temp. Máxima", f"{result.metrics['coolant_peak_c']:.1f} °C")
-            m4.metric("Health Score", f"{result.metrics['score']:.0f}/100")
+            # Métricas específicas de motor (solo si existen)
+            if result.metrics and "maf_error_pct_mean" in result.metrics:
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Error MAF medio", f"{result.metrics['maf_error_pct_mean']:.1f}%")
+                m2.metric("Pico Turbo (MAP)", f"{result.metrics['map_peak_mbar']:.0f} mbar")
+                m3.metric("Temp. Máxima", f"{result.metrics['coolant_peak_c']:.1f} °C")
+                m4.metric("Health Score", f"{result.metrics['score']:.0f}/100")
 
-        if result.data is not None:
-            st.divider()
-            
-            # Si el log es genérico, permitimos elegir columnas
-            if "📊 Log genérico detectado" in result.alerts[0]:
-                st.subheader("📈 Visualización Personalizada")
-                cols_to_plot = st.multiselect(
-                    "Elige las columnas para graficar:",
-                    options=result.data.columns,
-                    default=list(result.data.columns[:3])
-                )
-                if cols_to_plot:
-                    fig_gen = px.line(result.data, y=cols_to_plot, title="Datos del Log")
-                    st.plotly_chart(fig_gen, use_container_width=True)
-            else:
-                # Análisis específico ALH
-                tab_maf, tab_map = st.tabs(["Caudalímetro (MAF)", "Turbo (MAP)"])
+            if result.data is not None:
+                st.divider()
                 
-                with tab_maf:
-                    fig_maf = px.line(result.data, x=result.data.index, y=["maf_requested", "maf_actual"],
-                                    title="Solicitado vs Real", color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"})
-                    st.plotly_chart(fig_maf, use_container_width=True)
+                # Si el log es genérico, permitimos elegir columnas
+                is_generic = any("genérico" in a for a in result.alerts)
+                
+                if is_generic:
+                    st.subheader("📈 Visualización Personalizada")
+                    numeric_cols = result.data.select_dtypes(include='number').columns.tolist()
+                    if numeric_cols:
+                        cols_to_plot = st.multiselect(
+                            "Elige las columnas para graficar:",
+                            options=numeric_cols,
+                            default=numeric_cols[:min(3, len(numeric_cols))]
+                        )
+                        if cols_to_plot:
+                            fig_gen = px.line(result.data, y=cols_to_plot, title="Datos del Log")
+                            st.plotly_chart(fig_gen, use_container_width=True)
+                    else:
+                        st.warning("No se han encontrado columnas numéricas para graficar.")
+                else:
+                    # Análisis específico ALH
+                    tab_maf, tab_map = st.tabs(["Caudalímetro (MAF)", "Turbo (MAP)"])
                     
-                with tab_map:
-                    fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
-                    st.plotly_chart(fig_map, use_container_width=True)
+                    with tab_maf:
+                        fig_maf = px.line(result.data, x=result.data.index, y=["maf_requested", "maf_actual"],
+                                        title="Solicitado vs Real", color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"})
+                        st.plotly_chart(fig_maf, use_container_width=True)
+                        
+                    with tab_map:
+                        fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
+                        st.plotly_chart(fig_map, use_container_width=True)
 
 # --- CONFIGURACIÓN ---
 elif menu == "⚙️ Configuración":
