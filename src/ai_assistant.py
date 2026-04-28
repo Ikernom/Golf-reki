@@ -20,7 +20,7 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
 
         # Limitamos el CSV a los primeros 5000 caracteres para no saturar
         csv_sample = raw_csv_text[:8000]
@@ -149,7 +149,7 @@ def ai_chat_response(raw_csv_text: str, user_query: str) -> str:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-3.1-pro-preview')
+        model = genai.GenerativeModel('gemini-pro-latest')
 
         vehicle = f"Golf IV 1.9 TDI ALH, {info.get('current_mileage', '280000')} km"
 
