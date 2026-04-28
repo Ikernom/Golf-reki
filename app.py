@@ -35,8 +35,30 @@ with st.sidebar:
         label_visibility="collapsed"
     )
     st.markdown("---")
-    st.info("🚗 **Kilometraje:** 280.000 km\n\n🕒 **Próximo Servicio:** 290.000 km")
-    st.caption("ALH Care v2.1 • Premium Edition")
+    
+    # KM Management in Sidebar
+    info = get_vehicle_info()
+    current_km = int(info.get("current_mileage", 280000))
+    
+    # Fetch last maintenance km to ensure we don't go below that either
+    entries = list_entries()
+    last_maint_km = max([e["mileage_km"] for e in entries]) if entries else 0
+    min_allowed_km = max(current_km, last_maint_km)
+    
+    st.markdown(f"### 📍 {min_allowed_km:,} km")
+    
+    with st.expander("Actualizar Kilometraje"):
+        new_km = st.number_input("Nuevo kilometraje", value=min_allowed_km, step=100, min_value=min_allowed_km)
+        if st.button("Guardar KM", use_container_width=True):
+            if new_km > current_km:
+                update_vehicle_info("current_mileage", str(new_km))
+                st.success("¡Kilometraje actualizado!")
+                st.rerun()
+            else:
+                st.warning("El kilometraje debe ser mayor al actual.")
+
+    st.caption(f"🕒 Próximo Servicio: {min_allowed_km + (10000 - (min_allowed_km % 10000)) if (min_allowed_km % 10000) != 0 else min_allowed_km + 10000} km")
+    st.caption("ALH Care v2.2 • Premium Edition")
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
@@ -48,7 +70,7 @@ if menu == "🏠 Dashboard":
     df_entries = pd.DataFrame(entries) if entries else pd.DataFrame()
     
     total_cost = df_entries["cost_eur"].sum() if not df_entries.empty else 0
-    last_km = df_entries["mileage_km"].max() if not df_entries.empty else 280000
+    last_km = min_allowed_km # Usar el valor calculado en la barra lateral
     last_oil_km = get_last_mileage_for_category("Aceite") or 270000
     
     c1, c2, c3, c4 = st.columns(4)
@@ -196,9 +218,12 @@ elif menu == "⚙️ Configuración":
         vin = st.text_input("Bastidor (VIN)", value=info.get("vin", ""))
         engine_code = st.text_input("Código Motor", value=info.get("engine_code", "ALH"))
         plate = st.text_input("Matrícula", value=info.get("plate", ""))
+        current_mileage_cfg = st.number_input("Kilometraje Actual (km)", value=min_allowed_km, min_value=min_allowed_km)
         
         if st.form_submit_button("Actualizar Ficha"):
             update_vehicle_info("vin", vin)
             update_vehicle_info("engine_code", engine_code)
             update_vehicle_info("plate", plate)
+            update_vehicle_info("current_mileage", str(current_mileage_cfg))
             st.success("Ficha técnica actualizada.")
+            st.rerun()
