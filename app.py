@@ -150,16 +150,30 @@ elif menu == "📈 Análisis de Logs":
 
         if result.data is not None:
             st.divider()
-            tab_maf, tab_map = st.tabs(["Caudalímetro (MAF)", "Turbo (MAP)"])
             
-            with tab_maf:
-                fig_maf = px.line(result.data, x=result.data.index, y=["maf_requested", "maf_actual"],
-                                title="Solicitado vs Real", color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"})
-                st.plotly_chart(fig_maf, use_container_width=True)
+            # Si el log es genérico, permitimos elegir columnas
+            if "📊 Log genérico detectado" in result.alerts[0]:
+                st.subheader("📈 Visualización Personalizada")
+                cols_to_plot = st.multiselect(
+                    "Elige las columnas para graficar:",
+                    options=result.data.columns,
+                    default=list(result.data.columns[:3])
+                )
+                if cols_to_plot:
+                    fig_gen = px.line(result.data, y=cols_to_plot, title="Datos del Log")
+                    st.plotly_chart(fig_gen, use_container_width=True)
+            else:
+                # Análisis específico ALH
+                tab_maf, tab_map = st.tabs(["Caudalímetro (MAF)", "Turbo (MAP)"])
                 
-            with tab_map:
-                fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
-                st.plotly_chart(fig_map, use_container_width=True)
+                with tab_maf:
+                    fig_maf = px.line(result.data, x=result.data.index, y=["maf_requested", "maf_actual"],
+                                    title="Solicitado vs Real", color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"})
+                    st.plotly_chart(fig_maf, use_container_width=True)
+                    
+                with tab_map:
+                    fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
+                    st.plotly_chart(fig_map, use_container_width=True)
 
 # --- CONFIGURACIÓN ---
 elif menu == "⚙️ Configuración":
