@@ -6,7 +6,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.db import init_db
-from src.log_analyzer import analyze_log, clean_vcds_log
+from src.log_analyzer import clean_vcds_log, analyze_groups
 from src.maintenance import (
     MaintenanceEntry, 
     add_entry, 
@@ -149,65 +149,96 @@ elif menu == "📈 Análisis de Logs":
     
     uploaded = st.file_uploader("Arrastra tu archivo .csv aquí", type=["csv"])
     if uploaded:
-        # Limpieza robusta del log de VCDS
-        df_log = clean_vcds_log(uploaded)
+        # Parser multicanal de VCDS
+        parsed = clean_vcds_log(uploaded)
         
-        if isinstance(df_log, str):
-            st.error(f"❌ Error al leer el log: {df_log}")
+        if isinstance(parsed, str):
+            st.error(f"❌ Error al leer el log: {parsed}")
         else:
-            result = analyze_log(df_log)
+            result = analyze_groups(parsed)
             
             st.subheader("🔍 Resultados del Escaneo")
         
             # Alertas
             for alert in result.alerts:
-                if "✅" in alert or "OK" in alert:
+                if "✅" in alert:
                     st.success(alert)
                 elif "📊" in alert:
                     st.info(alert)
                 else:
                     st.warning(alert)
             
-            # Métricas específicas de motor (solo si existen)
-            if result.metrics and "maf_error_pct_mean" in result.metrics:
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Error MAF medio", f"{result.metrics['maf_error_pct_mean']:.1f}%")
-                m2.metric("Pico Turbo (MAP)", f"{result.metrics['map_peak_mbar']:.0f} mbar")
-                m3.metric("Temp. Máxima", f"{result.metrics['coolant_peak_c']:.1f} °C")
-                m4.metric("Health Score", f"{result.metrics['score']:.0f}/100")
+            # Métricas si hay datos de motor
+            metric_cols = st.columns(3)
+            if "score" in result.metrics:
+                metric_cols[0].metric("Health Score", f"{result.metrics['score']:.0f}/100")
+            if "map_peak_mbar" in result.metrics:
+                metric_cols[1].metric("Pico Turbo", f"{result.metrics['map_peak_mbar']:.0f} mbar")
+            if "maf_error_pct_mean" in result.metrics:
+                metric_cols[2].metric("Error MAF", f"{result.metrics['maf_error_pct_mean']:.1f}%")
 
-            if result.data is not None:
-                st.divider()
+            # --- GRÁFICAS POR GRUPO ---
+            st.divider()
+            st.subheader("📈 Gráficas por Grupo")
+
+            # Nombres descriptivos para los grupos conocidos
+            GROUP_NAMES = {
+                "011": "Turbo Boost Analysis",
+                "003": "Air Mass / MAF Analysis",
+                "008": "Torque / Injection Limits",
+                "001": "Engine Basics",
+                "002": "Idle / Lambda",
+                "004": "Timing / Injection Timing",
+                "005": "Misc Sensors",
+                "010": "EGR / Emissions",
+                "012": "Glow Plugs",
+                "014": "Injection Quantity",
+                "015": "Fuel Pressure",
+            }
+
+            # Crear una pestaña por grupo
+            if result.groups:
+                tab_names = []
+                for g in result.groups:
+                    nice_name = GROUP_NAMES.get(g.group_id, f"Group {g.group_id}")
+                    tab_names.append(f"{g.group_label}: {nice_name}")
                 
-                # Si el log es genérico, permitimos elegir columnas
-                is_generic = any("genérico" in a for a in result.alerts)
+                tabs = st.tabs(tab_names)
                 
-                if is_generic:
-                    st.subheader("📈 Visualización Personalizada")
-                    numeric_cols = result.data.select_dtypes(include='number').columns.tolist()
-                    if numeric_cols:
-                        cols_to_plot = st.multiselect(
-                            "Elige las columnas para graficar:",
-                            options=numeric_cols,
-                            default=numeric_cols[:min(3, len(numeric_cols))]
-                        )
-                        if cols_to_plot:
-                            fig_gen = px.line(result.data, y=cols_to_plot, title="Datos del Log")
-                            st.plotly_chart(fig_gen, use_container_width=True)
-                    else:
-                        st.warning("No se han encontrado columnas numéricas para graficar.")
-                else:
-                    # Análisis específico ALH
-                    tab_maf, tab_map = st.tabs(["Caudalímetro (MAF)", "Turbo (MAP)"])
-                    
-                    with tab_maf:
-                        fig_maf = px.line(result.data, x=result.data.index, y=["maf_requested", "maf_actual"],
-                                        title="Solicitado vs Real", color_discrete_map={"maf_requested": "#636EFA", "maf_actual": "#EF553B"})
-                        st.plotly_chart(fig_maf, use_container_width=True)
+                for tab, group in zip(tabs, result.groups):
+                    with tab:
+                        df = group.data.copy()
                         
-                    with tab_map:
-                        fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
-                        st.plotly_chart(fig_map, use_container_width=True)
+                        # Usar Time Stamp como eje X si existe
+                        x_col = "Time Stamp" if "Time Stamp" in df.columns else df.index
+                        
+                        # Columnas de datos (excluir Marker y Time Stamp)
+                        data_cols = [c for c in df.columns if c not in ("Marker", "Time Stamp")]
+                        
+                        if not data_cols:
+                            st.warning("Este grupo no tiene columnas de datos.")
+                            continue
+                        
+                        # Gráfica con todas las columnas del grupo
+                        nice_name = GROUP_NAMES.get(group.group_id, f"Group {group.group_id}")
+                        fig = px.line(
+                            df, 
+                            x=x_col if isinstance(x_col, str) else None,
+                            y=data_cols,
+                            title=f"{nice_name} (Group {group.group_id})",
+                            labels={"value": "Valor", "variable": "Canal"},
+                        )
+                        fig.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            hovermode="x unified"
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Tabla de datos expandible
+                        with st.expander(f"📋 Datos crudos ({len(df)} muestras)"):
+                            st.dataframe(df, use_container_width=True, hide_index=True)
 
             # --- ASISTENTE IA ---
             st.divider()
@@ -221,6 +252,9 @@ elif menu == "📈 Análisis de Logs":
                 with st.chat_message(msg["role"]):
                     st.write(msg["content"])
 
+            # Para la IA, combinamos todos los grupos en un solo DataFrame
+            all_data = pd.concat([g.data for g in result.groups], axis=1) if result.groups else pd.DataFrame()
+
             if prompt := st.chat_input("Pregunta algo sobre este log (ej: ¿Ves algún fallo de turbo?)"):
                 with st.chat_message("user"):
                     st.write(prompt)
@@ -228,7 +262,7 @@ elif menu == "📈 Análisis de Logs":
                 
                 with st.chat_message("assistant", avatar="🏎️"):
                     with st.spinner("Analizando telemetría..."):
-                        response = get_ai_response(result.data, prompt)
+                        response = get_ai_response(all_data, prompt)
                         st.write(response)
                 st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
 
