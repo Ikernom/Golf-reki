@@ -75,36 +75,29 @@ if menu == "🏠 Dashboard":
             return base64.b64encode(f.read()).decode()
     
     try:
-        img_b64 = get_base64("dashboard_base.png")
+        img_b64 = get_base64("dashboard_final.png")
         st.markdown(f"""
             <div style="position: relative; width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
                 <img src="data:image/png;base64,{img_b64}" style="width: 100%; display: block;">
                 
                 <!-- Time Overlay (Left LCD) -->
-                <div style="position: absolute; top: 57.5%; left: 29%; transform: translate(-50%, -50%); 
-                            color: #001a33; text-shadow: 0 0 2px rgba(0,0,255,0.2); font-family: 'JetBrains Mono', monospace; 
-                            font-size: 1.8vw; font-weight: bold; letter-spacing: 2px; opacity: 0.9;">
+                <div style="position: absolute; top: 73.5%; left: 31%; transform: translate(-50%, -50%); 
+                            color: #a3c2ff; text-shadow: 0 0 10px rgba(0,100,255,0.8); font-family: 'JetBrains Mono', monospace; 
+                            font-size: 1.8vw; font-weight: bold; letter-spacing: 2px;">
                     {now}
                 </div>
                 
                 <!-- Mileage Overlay (Right LCD) -->
-                <div style="position: absolute; top: 57.5%; left: 73%; transform: translate(-50%, -50%); 
-                            color: #001a33; text-shadow: 0 0 2px rgba(0,0,255,0.2); font-family: 'JetBrains Mono', monospace; 
-                            font-size: 1.5vw; font-weight: bold; letter-spacing: 1px; opacity: 0.9; text-align: right;">
+                <div style="position: absolute; top: 73.5%; left: 73%; transform: translate(-50%, -50%); 
+                            color: #a3c2ff; text-shadow: 0 0 10px rgba(0,100,255,0.8); font-family: 'JetBrains Mono', monospace; 
+                            font-size: 1.2vw; font-weight: bold; letter-spacing: 1px; text-align: center; line-height: 1;">
                     {last_km}<br>
-                    <span style="font-size: 0.8vw;">ODO</span>
-                </div>
-                
-                <!-- MFA Overlay (Center) -->
-                <div style="position: absolute; top: 54%; left: 50.5%; transform: translate(-50%, -50%); 
-                            color: #220000; text-shadow: 0 0 2px rgba(255,0,0,0.3); font-family: 'JetBrains Mono', monospace; 
-                            font-size: 1.5vw; font-weight: bold; opacity: 0.8;">
-                    12.5°C
+                    <span style="font-size: 0.7vw; opacity: 0.7;">ODO</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
     except Exception:
-        st.image("dashboard_hero_replica.png", use_container_width=True)
+        st.image("dashboard_final.png", use_container_width=True)
 
     st.title("Sistema de Diagnosis")
     
