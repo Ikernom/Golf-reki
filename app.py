@@ -16,6 +16,7 @@ from src.maintenance import (
     update_vehicle_info,
     get_last_mileage_for_category
 )
+from src.ai_assistant import get_ai_response
 from src.styles import apply_styles
 
 # Initialize
@@ -208,6 +209,29 @@ elif menu == "📈 Análisis de Logs":
                         fig_map = px.area(result.data, x="rpm", y="map_actual", title="Presión Turbo vs RPM", color_discrete_sequence=["#00CC96"])
                         st.plotly_chart(fig_map, use_container_width=True)
 
+            # --- ASISTENTE IA ---
+            st.divider()
+            st.subheader("🤖 Mecánico Virtual (AI)")
+            
+            if "ai_chat_history" not in st.session_state:
+                st.session_state.ai_chat_history = []
+
+            # Mostrar historial de chat
+            for msg in st.session_state.ai_chat_history:
+                with st.chat_message(msg["role"]):
+                    st.write(msg["content"])
+
+            if prompt := st.chat_input("Pregunta algo sobre este log (ej: ¿Ves algún fallo de turbo?)"):
+                with st.chat_message("user"):
+                    st.write(prompt)
+                st.session_state.ai_chat_history.append({"role": "user", "content": prompt})
+                
+                with st.chat_message("assistant", avatar="🏎️"):
+                    with st.spinner("Analizando telemetría..."):
+                        response = get_ai_response(result.data, prompt)
+                        st.write(response)
+                st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
+
 # --- CONFIGURACIÓN ---
 elif menu == "⚙️ Configuración":
     st.title("Ajustes del Vehículo")
@@ -220,10 +244,15 @@ elif menu == "⚙️ Configuración":
         plate = st.text_input("Matrícula", value=info.get("plate", ""))
         current_mileage_cfg = st.number_input("Kilometraje Actual (km)", value=min_allowed_km, min_value=min_allowed_km)
         
+        st.markdown("---")
+        st.subheader("IA y Conectividad")
+        gemini_key = st.text_input("Gemini API Key", value=info.get("gemini_api_key", ""), type="password", help="Obtenla en aistudio.google.com")
+
         if st.form_submit_button("Actualizar Ficha"):
             update_vehicle_info("vin", vin)
             update_vehicle_info("engine_code", engine_code)
             update_vehicle_info("plate", plate)
             update_vehicle_info("current_mileage", str(current_mileage_cfg))
+            update_vehicle_info("gemini_api_key", gemini_key)
             st.success("Ficha técnica actualizada.")
             st.rerun()
