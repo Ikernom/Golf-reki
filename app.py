@@ -34,7 +34,7 @@ with st.sidebar:
         label_visibility="collapsed"
     )
     st.markdown("---")
-    st.info("🚗 **Kilometraje:** 280.000 km\n\n🕒 **Próximo Servicio:** 295.000 km")
+    st.info("🚗 **Kilometraje:** 280.000 km\n\n🕒 **Próximo Servicio:** 290.000 km")
     st.caption("ALH Care v2.1 • Premium Edition")
 
 # --- DASHBOARD ---
@@ -52,7 +52,7 @@ if menu == "🏠 Dashboard":
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Kilometraje Actual", f"{last_km:,} km", delta="280k reach!")
     c2.metric("Inversión Total", f"{total_cost:,.2f} €")
-    c3.metric("Próximo Aceite", f"{last_km + 15000:,} km", delta="-5,000 km", delta_color="inverse")
+    c3.metric("Próximo Aceite", f"{last_km + 10000:,} km", delta="-10,000 km", delta_color="inverse")
     c4.metric("Estado General", "Excelente", delta="Optimizado")
 
     st.markdown("---")
