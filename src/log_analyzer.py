@@ -17,86 +17,71 @@ class AnalysisResult:
 
 def clean_vcds_log(uploaded_file) -> pd.DataFrame | str:
     """
-    Limpia un archivo CSV de VCDS saltando encabezados y detectando el separador.
+    Lector avanzado para logs multicanal de VCDS.
+    Busca los marcadores de grupo y mapea por posición.
     """
     import io
+    import numpy as np
     
-    # Leer el contenido completo para analizarlo
     content = uploaded_file.getvalue().decode("utf-8", errors="ignore").splitlines()
+    separator = ";" if any(";" in line for line in content[:10]) else ","
     
-    # Buscar la línea donde empiezan los datos (la que tiene 'RPM' o 'Group')
-    header_idx = -1
-    separator = ","
-    
-    for i, line in enumerate(content[:20]): # Miramos las primeras 20 líneas
-        if "RPM" in line.upper() or "MARKER" in line.upper() or "GROUP" in line.upper():
-            header_idx = i
-            if ";" in line:
-                separator = ";"
-            break
-            
-    if header_idx == -1:
-        return "No se ha encontrado el encabezado de datos (RPM, MAF, MAP) en las primeras 20 líneas."
-
-    # Re-leer usando el índice encontrado
     try:
-        # Saltamos las líneas de texto y leemos desde el header
-        df = pd.read_csv(io.StringIO("\n".join(content[header_idx:])), sep=separator, on_bad_lines='skip')
+        # Leer todo sin cabeceras para analizar la estructura
+        raw_df = pd.read_csv(io.StringIO("\n".join(content)), sep=separator, header=None, on_bad_lines='skip')
         
-        # VCDS suele poner una segunda línea de unidades (/min, mg/str) que hay que quitar
-        # Si la primera fila tiene texto en la columna RPM, la quitamos
-        if not df.empty and not str(df.iloc[0, 0]).replace('.','',1).isdigit():
-            df = df.iloc[1:].reset_index(drop=True)
+        # Diccionario para los nuevos datos
+        extracted = {}
+        
+        # 1. Buscar el bloque 011 (Turbo)
+        # Normalmente: [Col con '011'] -> [RPM] -> [MAP Spec] -> [MAP Actual] -> [N75]
+        for col in raw_df.columns:
+            matches = raw_df[raw_df[col].astype(str).str.contains('011', na=False)]
+            if not matches.empty:
+                idx = matches.index[0]
+                extracted["rpm"] = pd.to_numeric(raw_df.iloc[idx+2:, col], errors='coerce')
+                extracted["map_actual"] = pd.to_numeric(raw_df.iloc[idx+2:, col+2], errors='coerce')
+                break
+        
+        # 2. Buscar el bloque 003 (MAF)
+        # Normalmente: [Col con '003'] -> [RPM] -> [MAF Spec] -> [MAF Actual] -> [EGR]
+        for col in raw_df.columns:
+            matches = raw_df[raw_df[col].astype(str).str.contains('003', na=False)]
+            if not matches.empty:
+                idx = matches.index[0]
+                if "rpm" not in extracted: # Por si no estaba el 011
+                    extracted["rpm"] = pd.to_numeric(raw_df.iloc[idx+2:, col], errors='coerce')
+                extracted["maf_requested"] = pd.to_numeric(raw_df.iloc[idx+2:, col+1], errors='coerce')
+                extracted["maf_actual"] = pd.to_numeric(raw_df.iloc[idx+2:, col+2], errors='coerce')
+                break
+                
+        # 3. Buscar Temperatura (Bloque 001 o 007 habitualmente)
+        # Buscamos la palabra 'Temperature' en cualquier parte de las primeras filas
+        for col in raw_df.columns:
+            header_sample = raw_df.iloc[:10, col].astype(str).str.upper()
+            if any("TEMP" in s for s in header_sample):
+                extracted["coolant_temp"] = pd.to_numeric(raw_df.iloc[2:, col], errors='coerce')
+                break
+
+        if not extracted:
+            return "No he podido encontrar los bloques 003 o 011 en el archivo."
             
-        return df
+        final_df = pd.DataFrame(extracted).dropna(subset=['rpm']).reset_index(drop=True)
+        
+        # Si falta la temperatura, ponemos 90 por defecto para no romper el análisis
+        if "coolant_temp" not in final_df:
+            final_df["coolant_temp"] = 90.0
+            
+        return final_df
+
     except Exception as e:
-        return f"Error al procesar el CSV: {str(e)}"
+        return f"Error crítico al parsear el log: {str(e)}"
 
 
 def analyze_log(df: pd.DataFrame) -> AnalysisResult:
-    normalized = {col.lower().strip(): col for col in df.columns}
-    
-    # Mapeo inteligente MUCHO más agresivo
-    mapping = {
-        "rpm": ["rpm", "engine speed", "speed", "(g28)", "/min"],
-        "maf_actual": ["maf (actual)", "maf_actual", "air flow (actual)", "mass air", "actual", "maf"],
-        "maf_requested": ["maf (specified)", "maf_requested", "air flow (spec", "specified", "spec."],
-        "map_actual": ["map (actual)", "map_actual", "boost pressure (actual)", "pressure", "map"],
-        "coolant_temp": ["coolant", "temp", "g62", "temperature"]
-    }
-    
-    found_cols = {}
-    normalized_list = list(normalized.keys())
-    
-    for target, alternates in mapping.items():
-        # Prioridad 1: Coincidencia exacta o muy cercana
-        for alt in alternates:
-            for norm_col in normalized_list:
-                if alt in norm_col:
-                    found_cols[target] = normalized[norm_col]
-                    break
-            if target in found_cols: break
-
-    missing = [col for col in EXPECTED_COLUMNS if col not in found_cols]
-    if missing:
-        col_list_str = ", ".join(list(df.columns)[:10]) # Primeras 10 columnas encontradas
-        return AnalysisResult(
-            alerts=[
-                f"⚠️ No he podido identificar: **{', '.join(missing)}**",
-                f"Columnas detectadas en tu archivo: `{col_list_str}...`",
-                "Tip: Asegúrate de que el log sea del bloque 003 (MAF) y 011 (Turbo)."
-            ],
-            metrics={},
-            data=None,
-        )
-
-    data = pd.DataFrame({
-        "rpm": pd.to_numeric(df[found_cols["rpm"]], errors="coerce"),
-        "maf_actual": pd.to_numeric(df[found_cols["maf_actual"]], errors="coerce"),
-        "maf_requested": pd.to_numeric(df[found_cols["maf_requested"]], errors="coerce"),
-        "map_actual": pd.to_numeric(df[found_cols["map_actual"]], errors="coerce"),
-        "coolant_temp": pd.to_numeric(df[found_cols["coolant_temp"]], errors="coerce"),
-    }).dropna()
+    # Como el nuevo clean_vcds_log ya devuelve las columnas normalizadas, 
+    # el análisis es directo.
+    data = df.copy()
 
     if data.empty:
         return AnalysisResult(
