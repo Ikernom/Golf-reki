@@ -74,9 +74,12 @@ if menu == "🏠 Dashboard":
         draw = ImageDraw.Draw(img)
         w, h = img.size
 
-        # Try to load a monospace font, fallback to default
-        font_size_time = int(h * 0.045)
-        font_size_km = int(h * 0.035)
+        # LCD blue color matching the real dashboard
+        lcd_blue = (140, 180, 255)
+
+        # Font sizes - small enough to fit inside the tiny LCD rectangles
+        font_size_time = int(h * 0.028)
+        font_size_km = int(h * 0.022)
         try:
             font_time = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", font_size_time)
             font_km = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", font_size_km)
@@ -84,26 +87,22 @@ if menu == "🏠 Dashboard":
             font_time = ImageFont.load_default()
             font_km = ImageFont.load_default()
 
-        # LCD blue color matching the real dashboard
-        lcd_blue = (140, 180, 255)
-
-        # --- Draw TIME on Left LCD ---
-        # Position: bottom-left area of tachometer
-        time_x = int(w * 0.22)
-        time_y = int(h * 0.78)
-        # Get text size for centering
+        # --- Draw TIME inside Left LCD ---
+        time_x = int(w * 0.275)
+        time_y = int(h * 0.695)
         bbox = draw.textbbox((0, 0), now, font=font_time)
         tw = bbox[2] - bbox[0]
-        draw.text((time_x - tw // 2, time_y), now, fill=lcd_blue, font=font_time)
+        th = bbox[3] - bbox[1]
+        draw.text((time_x - tw // 2, time_y - th // 2), now, fill=lcd_blue, font=font_time)
 
-        # --- Draw KM on Right LCD ---
-        # Position: bottom-right area of speedometer
+        # --- Draw KM inside Right LCD ---
         km_text = f"{last_km}"
-        km_x = int(w * 0.78)
-        km_y = int(h * 0.78)
+        km_x = int(w * 0.76)
+        km_y = int(h * 0.695)
         bbox = draw.textbbox((0, 0), km_text, font=font_km)
         tw = bbox[2] - bbox[0]
-        draw.text((km_x - tw // 2, km_y), km_text, fill=lcd_blue, font=font_km)
+        th = bbox[3] - bbox[1]
+        draw.text((km_x - tw // 2, km_y - th // 2), km_text, fill=lcd_blue, font=font_km)
 
         # Convert to bytes for Streamlit
         buf = io.BytesIO()
