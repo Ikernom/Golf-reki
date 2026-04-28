@@ -9,9 +9,8 @@ import pandas as pd
 
 @dataclass
 class GroupData:
-    """Datos de un grupo individual de VCDS."""
-    group_id: str          # ej: "011"
-    group_label: str       # ej: "Group A"
+    group_id: str
+    group_label: str
     column_names: list[str]
     units: list[str]
     data: pd.DataFrame
@@ -27,209 +26,170 @@ class AnalysisResult:
 
 def clean_vcds_log(uploaded_file) -> list[GroupData] | str:
     """
-    Parser avanzado para logs de VCDS multicanal.
-    Detecta cada bloque 'Group X:' y extrae sus columnas y datos por separado.
-    Devuelve una lista de GroupData, uno por cada grupo encontrado.
+    Parser para logs VCDS multicanal horizontales.
+    Los grupos van lado a lado: Group A (011) | Group B (003) | Group C (008)
     """
-    content = uploaded_file.getvalue().decode("utf-8", errors="ignore").splitlines()
-    if not content:
+    raw = uploaded_file.getvalue().decode("utf-8", errors="ignore")
+    lines = raw.splitlines()
+    if not lines:
         return "El archivo está vacío."
 
-    separator = ";" if any(";" in line for line in content[:10]) else ","
+    sep = ";" if any(";" in l for l in lines[:5]) else ","
 
-    groups: list[GroupData] = []
+    # 1. Parsear todas las líneas del header (primeras 30)
+    header_parts = []
+    for i, line in enumerate(lines[:30]):
+        header_parts.append([p.strip().strip("'\"") for p in line.split(sep)])
 
-    # 1. Localizar todas las líneas que empiezan con "Group X:"
-    group_starts: list[tuple[int, str, str, list[str]]] = []  # (line_idx, label, group_id, col_names)
+    # 2. Encontrar filas clave
+    group_row_idx = -1
+    marker_row_idx = -1
+    for i, parts in enumerate(header_parts):
+        if any(re.match(r'Group\s+[A-Z]', p, re.I) for p in parts):
+            group_row_idx = i
+        if any(p.upper() in ('MARKER', 'MARK') for p in parts):
+            marker_row_idx = i
+            break
 
-    for i, line in enumerate(content):
-        # Detectar líneas como: "Group A:,011,Boost Pressure (Specified),..."
-        # o "Group A:;011;Boost Pressure (Specified);..."
-        parts = [p.strip().strip("'\"") for p in re.split(r'[,;]', line)]
-        if parts and re.match(r'Group\s+[A-Z]:', parts[0], re.IGNORECASE):
-            label = parts[0].rstrip(":")   # "Group A"
-            group_id = parts[1] if len(parts) > 1 else "???"
-            col_names = parts[2:] if len(parts) > 2 else []
-            # Filtrar columnas vacías
-            col_names = [c for c in col_names if c]
-            group_starts.append((i, label, group_id, col_names))
-
-    # Si no encontramos formato de grupos, intentar lectura plana como fallback
-    if not group_starts:
-        return _fallback_flat_read(content, separator)
-
-    # 2. Para cada grupo, extraer la fila de unidades y los datos
-    for idx, (line_idx, label, group_id, col_names) in enumerate(group_starts):
-        # Determinar dónde terminan los datos de este grupo
-        # (siguiente grupo o fin del archivo)
-        if idx + 1 < len(group_starts):
-            end_idx = group_starts[idx + 1][0]
-        else:
-            end_idx = len(content)
-
-        # La línea siguiente al grupo suele ser la de unidades
-        # Luego "Marker,Time Stamp,..." o directamente datos numéricos
-        block_lines = content[line_idx + 1 : end_idx]
-        if not block_lines:
-            continue
-
-        # Intentar detectar la fila de unidades (suele tener solo texto corto como "mbar", "/min", "%")
-        units_line = block_lines[0]
-        units_parts = [p.strip().strip("'\"") for p in re.split(r'[,;]', units_line)]
-        # Heurística: si la mayoría de los campos tienen letras o /, es una fila de unidades
-        non_empty = [u for u in units_parts if u]
-        is_units = len(non_empty) > 0 and sum(1 for u in non_empty if any(c.isalpha() or c == '/' for c in u)) > len(non_empty) * 0.5
-
-        if is_units:
-            units = units_parts[2:]  # Saltar Marker y Time Stamp
-            data_lines = block_lines[1:]
-        else:
-            units = [""] * len(col_names)
-            data_lines = block_lines
-
-        # Construir los nombres completos de las columnas: "Boost Pressure (Specified) [mbar]"
-        full_col_names = []
-        for j, name in enumerate(col_names):
-            unit = units[j] if j < len(units) and units[j] else ""
-            if unit:
-                full_col_names.append(f"{name} [{unit}]")
-            else:
-                full_col_names.append(name)
-
-        # 3. Parsear las filas de datos
-        all_cols = ["Marker", "Time Stamp"] + full_col_names
-        rows = []
-        for dl in data_lines:
-            parts = [p.strip().strip("'\"") for p in re.split(r'[,;]', dl)]
-            if not parts or not parts[0]:
-                continue
-            # Verificar que la primera columna (Marker) es numérica o vacía
-            try:
-                float(parts[0])
-            except ValueError:
-                # Puede ser la cabecera "Marker,Time Stamp,..." -> saltar
-                if "MARKER" in parts[0].upper() or "TIME" in parts[0].upper():
-                    continue
-                continue
-            rows.append(parts[:len(all_cols)])
-
-        if not rows:
-            continue
-
-        df = pd.DataFrame(rows, columns=all_cols[:len(rows[0])])
-        # Convertir a numérico
-        for col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-
-        groups.append(GroupData(
-            group_id=group_id,
-            group_label=label,
-            column_names=full_col_names,
-            units=units,
-            data=df
-        ))
-
-    if not groups:
-        return "No se han podido extraer datos de los grupos del log."
-
-    return groups
-
-
-def _fallback_flat_read(content: list[str], separator: str) -> list[GroupData] | str:
-    """Lectura plana para CSVs simples que no tengan formato de grupos VCDS."""
-    try:
-        # Buscar dónde empiezan los datos
-        header_idx = 0
-        for i, line in enumerate(content[:20]):
-            up = line.upper()
-            if "RPM" in up or "TIME" in up or "STAMP" in up or "MARKER" in up:
-                header_idx = i
+    if marker_row_idx == -1:
+        # Buscar primera fila con datos numéricos
+        for i, line in enumerate(lines):
+            parts = [p.strip() for p in line.split(sep)]
+            if parts and re.match(r'^\d+$', parts[0]):
+                marker_row_idx = i - 1
                 break
 
-        df = pd.read_csv(io.StringIO("\n".join(content[header_idx:])), sep=separator, on_bad_lines='skip')
+    if marker_row_idx == -1:
+        return "No se pudo encontrar el inicio de los datos."
 
-        # Limpiar fila de unidades si la primera fila tiene texto
-        if not df.empty:
-            first_val = str(df.iloc[0, 0])
-            if any(c.isalpha() for c in first_val) and len(df) > 1:
-                df = df.iloc[1:].reset_index(drop=True)
+    # 3. Extraer IDs de grupo y posiciones
+    group_ids = []
+    group_col_positions = []
+    if group_row_idx >= 0:
+        gparts = header_parts[group_row_idx]
+        for j, p in enumerate(gparts):
+            if re.match(r'^\d{2,3}$', p):
+                group_ids.append(p.zfill(3))
+                group_col_positions.append(j)
 
-        df.columns = [str(c).replace("'", "").replace('"', '').strip() for c in df.columns]
+    # 4. Extraer filas descriptivas (entre group_row y marker_row)
+    desc_rows = []
+    start_desc = (group_row_idx + 1) if group_row_idx >= 0 else 0
+    for r in range(start_desc, marker_row_idx):
+        if r < len(header_parts):
+            desc_rows.append(header_parts[r])
 
-        for col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+    # 5. Leer los datos desde marker_row
+    data_text = "\n".join(lines[marker_row_idx:])
+    df = pd.read_csv(io.StringIO(data_text), sep=sep, on_bad_lines='skip')
 
-        return [GroupData(
-            group_id="---",
-            group_label="Datos",
-            column_names=list(df.columns),
+    # Quitar fila de unidades si la primera fila tiene texto
+    if not df.empty:
+        first = str(df.iloc[0, 1]) if len(df.columns) > 1 else str(df.iloc[0, 0])
+        if any(c.isalpha() for c in first):
+            df = df.iloc[1:].reset_index(drop=True)
+
+    # Convertir a numérico
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # 6. Detectar grupos por columnas TIME repetidas
+    cols = list(df.columns)
+    time_indices = [i for i, c in enumerate(cols) if 'TIME' in str(c).upper()]
+
+    if not time_indices:
+        # Sin TIME -> un solo grupo con todo
+        df_clean = df.dropna(how='all', axis=1).dropna(how='all')
+        return [GroupData("---", "Datos", list(df_clean.columns), [], df_clean)]
+
+    # 7. Dividir columnas en grupos
+    groups: list[GroupData] = []
+    for g_idx, t_start in enumerate(time_indices):
+        # Fin del grupo: siguiente TIME o fin de columnas
+        if g_idx + 1 < len(time_indices):
+            t_end = time_indices[g_idx + 1]
+            # Quitar columnas Unnamed separadoras
+            while t_end > t_start and 'unnamed' in str(cols[t_end - 1]).lower():
+                t_end -= 1
+        else:
+            t_end = len(cols)
+            while t_end > t_start and 'unnamed' in str(cols[t_end - 1]).lower():
+                t_end -= 1
+
+        group_cols = cols[t_start:t_end]
+        group_df = df[group_cols].copy().dropna(how='all')
+
+        # Renombrar TIME.1 -> TIME, (G28).1 -> (G28)
+        rename = {}
+        for c in group_cols:
+            base = re.sub(r'\.\d+$', '', c)
+            if base != c:
+                rename[c] = base
+        group_df = group_df.rename(columns=rename)
+
+        # Construir nombres descriptivos desde las filas de cabecera
+        final_names = list(group_df.columns)
+        if desc_rows and group_col_positions and g_idx < len(group_col_positions):
+            gpos = group_col_positions[g_idx]
+            for col_i, col_name in enumerate(final_names):
+                abs_pos = t_start + col_i
+                combined = []
+                for dr in desc_rows:
+                    if abs_pos < len(dr) and dr[abs_pos]:
+                        combined.append(dr[abs_pos])
+                if combined:
+                    full_name = " ".join(combined)
+                    final_names[col_i] = full_name
+
+        # Aplicar nombres descriptivos
+        group_df.columns = final_names
+
+        gid = group_ids[g_idx] if g_idx < len(group_ids) else f"{g_idx + 1:03d}"
+        label = f"Group {chr(65 + g_idx)}"
+
+        groups.append(GroupData(
+            group_id=gid,
+            group_label=label,
+            column_names=final_names,
             units=[],
-            data=df
-        )]
-    except Exception as e:
-        return f"Error al procesar el CSV: {str(e)}"
+            data=group_df
+        ))
+
+    return groups if groups else "No se pudieron extraer datos."
 
 
 def analyze_groups(groups: list[GroupData]) -> AnalysisResult:
-    """
-    Analiza los grupos extraídos. Si detecta grupos conocidos (011, 003),
-    realiza análisis específico ALH. Si no, devuelve los datos tal cual.
-    """
     alerts: list[str] = []
     metrics: dict[str, float] = {}
 
-    # Buscar grupos conocidos del motor ALH
     group_map = {g.group_id: g for g in groups}
 
     # Grupo 011 - Turbo
     g011 = group_map.get("011")
     if g011 is not None and not g011.data.empty:
-        df = g011.data
-        # Las columnas de datos (sin Marker y Time Stamp) típicamente son:
-        # Boost Specified, Boost Actual, Engine Speed, Charge Pressure Dev
-        data_cols = [c for c in df.columns if c not in ("Marker", "Time Stamp")]
+        data_cols = [c for c in g011.data.columns if 'TIME' not in c.upper()]
         if len(data_cols) >= 2:
-            boost_spec = df[data_cols[0]]
-            boost_actual = df[data_cols[1]]
-            peak_boost = boost_actual.max()
-            metrics["map_peak_mbar"] = float(peak_boost) if pd.notna(peak_boost) else 0
-
-            if peak_boost > 2350:
-                alerts.append("⚠️ **Overboost detectado** en Grupo 011: Presión de turbo superior a 2350 mbar.")
-        if len(data_cols) >= 3:
-            rpm_col = df[data_cols[2]]
-            rpm_peak = rpm_col.max()
-            metrics["rpm_peak"] = float(rpm_peak) if pd.notna(rpm_peak) else 0
+            peak = g011.data[data_cols[1]].max()
+            metrics["map_peak_mbar"] = float(peak) if pd.notna(peak) else 0
+            if peak > 2350:
+                alerts.append("⚠️ **Overboost** en Grupo 011: Presión > 2350 mbar.")
 
     # Grupo 003 - MAF
     g003 = group_map.get("003")
     if g003 is not None and not g003.data.empty:
-        df = g003.data
-        data_cols = [c for c in df.columns if c not in ("Marker", "Time Stamp")]
+        data_cols = [c for c in g003.data.columns if 'TIME' not in c.upper()]
         if len(data_cols) >= 2:
-            maf_spec = df[data_cols[0]]
-            maf_actual = df[data_cols[1]]
-            maf_diff = ((maf_spec - maf_actual) / maf_spec).mean()
-            metrics["maf_error_pct_mean"] = float(maf_diff * 100) if pd.notna(maf_diff) else 0
-
-            if maf_diff > 0.15:
-                alerts.append("⚠️ **MAF bajo** en Grupo 003: El caudalímetro mide un {:.0f}% menos de lo solicitado.".format(maf_diff * 100))
-
-    # Grupo 008 - Inyección
-    g008 = group_map.get("008")
-    if g008 is not None and not g008.data.empty:
-        alerts.append("📊 Grupo 008 (Inyección/Torque) detectado con {} muestras.".format(len(g008.data)))
+            spec = g003.data[data_cols[0]]
+            actual = g003.data[data_cols[1]]
+            diff = ((spec - actual) / spec).mean()
+            metrics["maf_error_pct_mean"] = float(diff * 100) if pd.notna(diff) else 0
+            if diff > 0.15:
+                alerts.append(f"⚠️ **MAF bajo** en Grupo 003: {diff*100:.0f}% menos de lo solicitado.")
 
     if not alerts:
         alerts.append("✅ Todos los parámetros dentro de rangos normales para un ALH.")
 
-    # Health Score
     warning_count = sum(1 for a in alerts if "⚠️" in a or "🚨" in a)
     metrics["score"] = max(0, 100 - (warning_count * 25))
 
-    return AnalysisResult(
-        alerts=alerts,
-        metrics=metrics,
-        groups=groups,
-        data=None
-    )
+    return AnalysisResult(alerts=alerts, metrics=metrics, groups=groups)
