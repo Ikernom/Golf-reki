@@ -20,7 +20,7 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-3.1-pro-preview')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         # Limitamos el CSV a los primeros 5000 caracteres para no saturar
         csv_sample = raw_csv_text[:8000]
