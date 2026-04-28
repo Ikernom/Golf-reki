@@ -15,29 +15,83 @@ class AnalysisResult:
     data: pd.DataFrame | None = None
 
 
+def clean_vcds_log(uploaded_file) -> pd.DataFrame | str:
+    """
+    Limpia un archivo CSV de VCDS saltando encabezados y detectando el separador.
+    """
+    import io
+    
+    # Leer el contenido completo para analizarlo
+    content = uploaded_file.getvalue().decode("utf-8", errors="ignore").splitlines()
+    
+    # Buscar la línea donde empiezan los datos (la que tiene 'RPM' o 'Group')
+    header_idx = -1
+    separator = ","
+    
+    for i, line in enumerate(content[:20]): # Miramos las primeras 20 líneas
+        if "RPM" in line.upper() or "MARKER" in line.upper() or "GROUP" in line.upper():
+            header_idx = i
+            if ";" in line:
+                separator = ";"
+            break
+            
+    if header_idx == -1:
+        return "No se ha encontrado el encabezado de datos (RPM, MAF, MAP) en las primeras 20 líneas."
+
+    # Re-leer usando el índice encontrado
+    try:
+        # Saltamos las líneas de texto y leemos desde el header
+        df = pd.read_csv(io.StringIO("\n".join(content[header_idx:])), sep=separator, on_bad_lines='skip')
+        
+        # VCDS suele poner una segunda línea de unidades (/min, mg/str) que hay que quitar
+        # Si la primera fila tiene texto en la columna RPM, la quitamos
+        if not df.empty and not str(df.iloc[0, 0]).replace('.','',1).isdigit():
+            df = df.iloc[1:].reset_index(drop=True)
+            
+        return df
+    except Exception as e:
+        return f"Error al procesar el CSV: {str(e)}"
+
+
 def analyze_log(df: pd.DataFrame) -> AnalysisResult:
     normalized = {col.lower().strip(): col for col in df.columns}
-    missing = [col for col in EXPECTED_COLUMNS if col not in normalized]
+    
+    # Mapeo inteligente de columnas (VCDS usa nombres largos como 'Engine Speed  (G28)')
+    mapping = {
+        "rpm": ["rpm", "engine speed", "engine speed  (g28)", "/min"],
+        "maf_actual": ["maf (actual)", "maf_actual", "mass air flow (actual)", "maf - actual"],
+        "maf_requested": ["maf (specified)", "maf_requested", "mass air flow (spec.)", "maf - specified"],
+        "map_actual": ["map (actual)", "map_actual", "boost pressure (actual)", "map - actual"],
+        "coolant_temp": ["coolant temp", "coolant_temp", "temperature", "coolant temperature (g62)"]
+    }
+    
+    found_cols = {}
+    for target, alternates in mapping.items():
+        for alt in alternates:
+            for norm_col in normalized:
+                if alt in norm_col:
+                    found_cols[target] = normalized[norm_col]
+                    break
+            if target in found_cols: break
+
+    missing = [col for col in EXPECTED_COLUMNS if col not in found_cols]
     if missing:
         return AnalysisResult(
             alerts=[
-                "Faltan columnas en el log: "
-                + ", ".join(sorted(missing))
-                + ". Columnas esperadas: rpm, maf_actual, maf_requested, map_actual, coolant_temp."
+                f"Faltan columnas críticas: {', '.join(missing)}. "
+                "Asegúrate de que el log incluya RPM, MAF (Actual/Spec), MAP (Actual) y Temp."
             ],
             metrics={},
             data=None,
         )
 
-    data = pd.DataFrame(
-        {
-            "rpm": pd.to_numeric(df[normalized["rpm"]], errors="coerce"),
-            "maf_actual": pd.to_numeric(df[normalized["maf_actual"]], errors="coerce"),
-            "maf_requested": pd.to_numeric(df[normalized["maf_requested"]], errors="coerce"),
-            "map_actual": pd.to_numeric(df[normalized["map_actual"]], errors="coerce"),
-            "coolant_temp": pd.to_numeric(df[normalized["coolant_temp"]], errors="coerce"),
-        }
-    ).dropna()
+    data = pd.DataFrame({
+        "rpm": pd.to_numeric(df[found_cols["rpm"]], errors="coerce"),
+        "maf_actual": pd.to_numeric(df[found_cols["maf_actual"]], errors="coerce"),
+        "maf_requested": pd.to_numeric(df[found_cols["maf_requested"]], errors="coerce"),
+        "map_actual": pd.to_numeric(df[found_cols["map_actual"]], errors="coerce"),
+        "coolant_temp": pd.to_numeric(df[found_cols["coolant_temp"]], errors="coerce"),
+    }).dropna()
 
     if data.empty:
         return AnalysisResult(

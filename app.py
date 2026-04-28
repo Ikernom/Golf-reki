@@ -6,7 +6,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.db import init_db
-from src.log_analyzer import analyze_log
+from src.log_analyzer import analyze_log, clean_vcds_log
 from src.maintenance import (
     MaintenanceEntry, 
     add_entry, 
@@ -126,10 +126,15 @@ elif menu == "📈 Análisis de Logs":
     
     uploaded = st.file_uploader("Arrastra tu archivo .csv aquí", type=["csv"])
     if uploaded:
-        df_log = pd.read_csv(uploaded)
-        result = analyze_log(df_log)
+        # Limpieza robusta del log de VCDS
+        df_log = clean_vcds_log(uploaded)
         
-        st.subheader("🔍 Resultados del Escaneo")
+        if isinstance(df_log, str):
+            st.error(f"❌ Error al leer el log: {df_log}")
+        else:
+            result = analyze_log(df_log)
+            
+            st.subheader("🔍 Resultados del Escaneo")
         
         # Alerts in a modern way
         for alert in result.alerts:
