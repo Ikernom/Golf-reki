@@ -48,6 +48,21 @@ def init_db() -> None:
             )
             """
         )
+        # Tabla para categorías personalizadas
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL
+            )
+        ''')
+        
+        # Insertar por defecto si está vacía
+        cursor = conn.execute("SELECT COUNT(*) as count FROM categories")
+        if cursor.fetchone()['count'] == 0:
+            defaults = ["Aceite", "Filtros", "Fluidos", "Distribución", "Frenos", "Suspensión", "Neumáticos", "Electrónica", "Otros"]
+            for d in defaults:
+                conn.execute("INSERT INTO categories (name) VALUES (?)", (d,))
+
         # Tabla para logs de VCDS
         conn.execute('''
             CREATE TABLE IF NOT EXISTS logs (

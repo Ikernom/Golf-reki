@@ -27,7 +27,9 @@ from src.maintenance import (
     mark_fault_fixed,
     delete_log,
     delete_entry,
-    update_entry
+    update_entry,
+    list_categories,
+    add_category
 )
 from src.styles import apply_styles
 
@@ -228,30 +230,38 @@ elif menu == "🔧 Mantenimiento":
     
     # --- BARRA DE FILTROS Y ORDEN ---
     all_entries = list_entries()
-    categories = ["Todas", "Aceite", "Filtros", "Fluidos", "Frenos", "Neumáticos", "Motor", "Otros"]
+    categories = ["Todas", "Aceite", "Filtros", "Fluidos", "Distribución", "Frenos", "Neumáticos", "Motor", "Otros"]
     
-    col_f1, col_f2 = st.columns(2)
+    col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
     with col_f1:
         filter_cat = st.selectbox("Filtrar por categoría:", categories)
     with col_f2:
-        sort_by = st.selectbox("Ordenar por:", ["Fecha (Más reciente)", "Fecha (Más antiguo)", "Kilometraje", "Coste (Mayor primero)", "Nombre (A-Z)"])
+        sort_by = st.selectbox("Ordenar por:", ["Fecha", "Kilometraje", "Coste", "Nombre"])
+    with col_f3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Inicializar dirección en session_state si no existe
+        if "sort_desc" not in st.session_state: st.session_state.sort_desc = True
+        
+        icon = "⬇️ Desc." if st.session_state.sort_desc else "⬆️ Asc."
+        if st.button(icon, use_container_width=True, help="Cambiar dirección de orden"):
+            st.session_state.sort_desc = not st.session_state.sort_desc
+            st.rerun()
 
     # Aplicar Filtro
     entries = all_entries
     if filter_cat != "Todas":
         entries = [e for e in all_entries if e["category"] == filter_cat]
 
-    # Aplicar Orden
-    if sort_by == "Fecha (Más reciente)":
-        entries = sorted(entries, key=lambda x: x["date"], reverse=True)
-    elif sort_by == "Fecha (Más antiguo)":
-        entries = sorted(entries, key=lambda x: x["date"])
+    # Aplicar Orden Dinámico
+    is_desc = st.session_state.sort_desc
+    if sort_by == "Fecha":
+        entries = sorted(entries, key=lambda x: x["date"], reverse=is_desc)
     elif sort_by == "Kilometraje":
-        entries = sorted(entries, key=lambda x: x["mileage_km"], reverse=True)
-    elif sort_by == "Coste (Mayor primero)":
-        entries = sorted(entries, key=lambda x: x.get("cost_eur", 0.0), reverse=True)
-    elif sort_by == "Nombre (A-Z)":
-        entries = sorted(entries, key=lambda x: x["description"].lower())
+        entries = sorted(entries, key=lambda x: x["mileage_km"], reverse=is_desc)
+    elif sort_by == "Coste":
+        entries = sorted(entries, key=lambda x: x.get("cost_eur", 0.0), reverse=is_desc)
+    elif sort_by == "Nombre":
+        entries = sorted(entries, key=lambda x: x["description"].lower(), reverse=is_desc)
 
     if not entries:
         st.info("No hay intervenciones que coincidan con los filtros.")

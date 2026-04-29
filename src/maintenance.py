@@ -131,3 +131,18 @@ def update_entry(entry_id: int, date: str, mileage_km: int, description: str, ca
             (date, mileage_km, description, category, cost, notes, entry_id)
         )
         conn.commit()
+
+
+def list_categories():
+    with get_connection() as conn:
+        cursor = conn.execute("SELECT name FROM categories ORDER BY name ASC")
+        return [row['name'] for row in cursor.fetchall()]
+
+
+def add_category(name: str):
+    with get_connection() as conn:
+        try:
+            conn.execute("INSERT INTO categories (name) VALUES (?)", (name,))
+            conn.commit()
+        except:
+            pass # Ya existe
