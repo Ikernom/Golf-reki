@@ -85,7 +85,7 @@ with st.sidebar:
 
     st.markdown(f"""
         <div style="background-color: #000; border: 1px solid {status_color}; border-radius: 4px; padding: 8px; text-align: center; box-shadow: inset 0 0 15px {glow_color};">
-            <span style="color: {status_color}; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 0.8rem; text-transform: uppercase;">
+            <span style="color: {status_color}; font-family: 'Michroma', sans-serif; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">
                 {status_text}
             </span>
         </div>
@@ -207,107 +207,12 @@ if menu == "🏠 Dashboard":
             for r in reminders:
                 st.info(f"**{r['title']}**\n\nLímite: {r['due_mileage']} km")
         else:
-            st.success("✅ Todo al día. ¡A disfrutar del TDI!")
-            st.w# --- MANTENIMIENTO ---
+            st.write("No tienes tareas pendientes urgentes.")
+
+# --- MANTENIMIENTO ---
 elif menu == "🔧 Mantenimiento":
     st.title("Gestión de Mantenimiento")
     db_categories = list_categories()
-    
-    # Estilo LCD Global para Mantenimiento y Pestañas
-    st.markdown("""
-        <style>
-        /* Estilo para las Pestañas (Tabs) */
-        div[data-testid="stTabs"] button {
-            background-color: #000000 !important;
-            color: #555555 !important;
-            border: 1px solid #333333 !important;
-            border-bottom: 2px solid #ff0000 !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-weight: bold !important;
-            text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        div[data-testid="stTabs"] button[aria-selected="true"] {
-            color: #1c47ff !important;
-            border: 1px solid #1c47ff !important;
-            border-bottom: 3px solid #1c47ff !important;
-            box-shadow: 0 0 15px rgba(28, 71, 255, 0.4), inset 0 0 10px rgba(28, 71, 255, 0.2) !important;
-            text-shadow: 0 0 10px rgba(28, 71, 255, 0.8) !important;
-        }
-        
-        /* RECONSTRUCCIÓN TOTAL SELECTBOXES LCD */
-        div[data-baseweb="select"] > div {
-            background-color: #000000 !important;
-            border: 1.5px solid #ff0000 !important;
-            border-radius: 4px !important;
-            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.2) !important;
-            height: 45px !important;
-        }
-        
-        /* Texto del valor seleccionado */
-        div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
-        div[data-baseweb="select"] span {
-            color: #1c47ff !important;
-            text-shadow: 0 0 8px rgba(28, 71, 255, 0.8) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-weight: 800 !important;
-            font-size: 1rem !important;
-            text-transform: uppercase !important;
-        }
-
-        /* Icono de la flecha (dropdown) */
-        div[data-baseweb="select"] svg {
-            fill: #ff0000 !important;
-        }
-
-        /* Estilo para los inputs de registro/edición (Formularios) */
-        div.stForm input, div.stForm textarea {
-            background-color: #000000 !important;
-            color: #1c47ff !important;
-            border: 1.5px solid #ff0000 !important;
-            box-shadow: inset 0 0 12px rgba(28, 71, 255, 0.25) !important;
-            text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            padding: 12px !important;
-            border-radius: 4px !important;
-        }
-
-        /* TODAS las etiquetas (labels) de la sección */
-        label p, .stMarkdown p {
-            color: #1c47ff !important;
-            text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-weight: bold !important;
-            text-transform: uppercase !important;
-        }
-
-        /* Botones de ordenación y otros botones de la sección */
-        div.stButton button {
-            background-color: #000000 !important;
-            color: #1c47ff !important;
-            border: 1.5px solid #ff0000 !important;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.2) !important;
-            text-shadow: 0 0 8px rgba(28, 71, 255, 0.8) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-weight: 800 !important;
-            text-transform: uppercase !important;
-        }
-        
-        div.stButton button:hover {
-            border-color: #1c47ff !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 15px rgba(28, 71, 255, 0.5) !important;
-        }
-            color: #1c47ff !important;
-            text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase !important;
-            font-size: 0.8rem !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
     
     tab_realized, tab_future = st.tabs(["🔧 Intervenciones Realizadas", "📅 Plan de Futuro (Wishlist)"])
     
@@ -378,7 +283,7 @@ elif menu == "🔧 Mantenimiento":
                 st.markdown(f"""
                     <div style="position: relative; height: 0px; margin-bottom: 0px;">
                         <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; border: 1.5px solid #ff0000; box-shadow: 0 0 10px rgba(255, 0, 0, 0.4); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.65rem; font-weight: 400; border: 1.5px solid #ff0000; box-shadow: 0 0 10px rgba(255, 0, 0, 0.4); text-transform: uppercase; font-family: 'Michroma', sans-serif; letter-spacing: 1px;">
                                 <span style="color: #ff0000;">●</span> {entry['category']}
                             </span>
                         </div>
@@ -456,7 +361,7 @@ elif menu == "🔧 Mantenimiento":
                 st.markdown(f"""
                     <div style="position: relative; height: 0px; margin-bottom: 0px;">
                         <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; border: 1.5px solid #2e5bff; box-shadow: 0 0 10px rgba(46, 91, 255, 0.4); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.65rem; font-weight: 400; border: 1.5px solid #2e5bff; box-shadow: 0 0 10px rgba(46, 91, 255, 0.4); text-transform: uppercase; font-family: 'Michroma', sans-serif; letter-spacing: 1px;">
                                 <span style="color: #2e5bff;">●</span> {mod['category']}
                             </span>
                         </div>
@@ -736,7 +641,7 @@ elif menu == "⚙️ Configuración":
         div[data-testid="stForm"] label p {
             color: #1c47ff !important;
             text-shadow: 0 0 12px rgba(28, 71, 255, 0.8) !important;
-            font-family: 'JetBrains Mono', monospace !important;
+            font-family: 'Michroma', sans-serif !important;
             font-weight: 800 !important;
             text-transform: uppercase !important;
             letter-spacing: 2px !important;
@@ -751,7 +656,7 @@ elif menu == "⚙️ Configuración":
             border-radius: 4px !important;
             box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.3) !important;
             text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
-            font-family: 'JetBrains Mono', monospace !important;
+            font-family: 'Share Tech Mono', monospace !important; /* LCD numérico: mantener mono */
             font-weight: bold !important;
             padding: 10px !important;
         }
