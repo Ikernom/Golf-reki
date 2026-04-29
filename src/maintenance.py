@@ -1,160 +1,133 @@
-from __future__ import annotations
-
-from dataclasses import dataclass
-from typing import Iterable
-
+import sqlite3
+from datetime import datetime
 from src.db import get_connection
 
-
-@dataclass
 class MaintenanceEntry:
-    date: str
-    mileage_km: int
-    category: str
-    description: str
-    cost_eur: float
-    notes: str = ""
+    def __init__(self, date, mileage_km, category, description, cost_eur=0.0, notes="", id=None):
+        self.id = id
+        self.date = date
+        self.mileage_km = mileage_km
+        self.category = category
+        self.description = description
+        self.cost_eur = cost_eur
+        self.notes = notes
 
-
-def add_entry(entry: MaintenanceEntry) -> None:
+def add_entry(date: str, mileage_km: int, category: str, description: str, cost: float, notes: str = "") -> None:
     with get_connection() as conn:
         conn.execute(
-            """
-            INSERT INTO maintenance (
-                date, mileage_km, category, description, cost_eur, notes
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                entry.date,
-                entry.mileage_km,
-                entry.category,
-                entry.description,
-                entry.cost_eur,
-                entry.notes,
-            ),
+            "INSERT INTO maintenance (date, mileage_km, category, description, cost_eur, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            (date, mileage_km, category, description, cost, notes)
         )
         conn.commit()
 
-
-def list_entries() -> Iterable[dict]:
+def list_entries():
     with get_connection() as conn:
-        rows = conn.execute(
-            """
-            SELECT id, date, mileage_km, category, description, cost_eur, notes
-            FROM maintenance
-            ORDER BY date DESC, mileage_km DESC
-            """
-        ).fetchall()
-    return [dict(row) for row in rows]
+        cursor = conn.execute("SELECT * FROM maintenance ORDER BY date DESC, mileage_km DESC")
+        return [dict(row) for row in cursor.fetchall()]
 
-
-def get_reminders() -> Iterable[dict]:
+def get_reminders():
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT * FROM reminders WHERE is_completed = 0 ORDER BY due_mileage ASC"
-        ).fetchall()
-    return [dict(row) for row in rows]
+        cursor = conn.execute("SELECT * FROM reminders WHERE is_completed = 0")
+        return [dict(row) for row in cursor.fetchall()]
 
-
-def get_vehicle_info() -> dict:
+def get_vehicle_info():
     with get_connection() as conn:
-        rows = conn.execute("SELECT key, value FROM vehicle_info").fetchall()
-    return {row["key"]: row["value"] for row in rows}
+        cursor = conn.execute("SELECT key, value FROM vehicle_info")
+        return {row['key']: row['value'] for row in cursor.fetchall()}
 
-
-def update_vehicle_info(key: str, value: str) -> None:
+def update_vehicle_info(key: str, value: str):
     with get_connection() as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO vehicle_info (key, value) VALUES (?, ?)", (key, value)
+            "INSERT OR REPLACE INTO vehicle_info (key, value) VALUES (?, ?)",
+            (key, str(value))
         )
         conn.commit()
-
-
-def get_last_mileage_for_category(category: str) -> int | None:
-    with get_connection() as conn:
-        row = conn.execute(
-            "SELECT mileage_km FROM maintenance WHERE category = ? ORDER BY mileage_km DESC LIMIT 1",
-            (category,),
-        ).fetchone()
-    return row["mileage_km"] if row else None
-
 
 def save_log(filename: str, content: str, analysis_json: str) -> int:
     with get_connection() as conn:
         cursor = conn.execute(
             "INSERT INTO logs (filename, content, analysis_json) VALUES (?, ?, ?)",
-            (filename, content, analysis_json),
+            (filename, content, analysis_json)
         )
         conn.commit()
         return cursor.lastrowid
 
-
-def list_logs() -> Iterable[dict]:
+def list_logs():
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT id, filename, timestamp FROM logs ORDER BY timestamp DESC"
-        ).fetchall()
-    return [dict(row) for row in rows]
+        cursor = conn.execute("SELECT id, filename, timestamp FROM logs ORDER BY timestamp DESC")
+        return [dict(row) for row in cursor.fetchall()]
 
-
-def get_log(log_id: int) -> dict | None:
+def get_log(log_id: int):
     with get_connection() as conn:
-        row = conn.execute(
-            "SELECT * FROM logs WHERE id = ?", (log_id,)
-        ).fetchone()
-    return dict(row) if row else None
+        cursor = conn.execute("SELECT * FROM logs WHERE id = ?", (log_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
 
-
-def update_log_chat(log_id: int, chat_history_json: str) -> None:
+def update_log_chat(log_id: int, chat_history_json: str):
     with get_connection() as conn:
-        conn.execute(
-            "UPDATE logs SET chat_history_json = ? WHERE id = ?",
-            (chat_history_json, log_id),
-        )
+        # Asegurar que la columna existe (migración rápida)
+        try:
+            conn.execute("ALTER TABLE logs ADD COLUMN chat_history_json TEXT")
+        except:
+            pass
+        conn.execute("UPDATE logs SET chat_history_json = ? WHERE id = ?", (chat_history_json, log_id))
         conn.commit()
 
-
-def add_fault(component: str, severity: str, description: str) -> None:
+def get_last_mileage_for_category(category: str) -> int:
     with get_connection() as conn:
+        cursor = conn.execute(
+            "SELECT MAX(mileage_km) as last_km FROM maintenance WHERE category = ?",
+            (category,)
+        )
+        result = cursor.fetchone()
+        return result['last_km'] if result and result['last_km'] else 0
+
+def add_fault(component: str, severity: str, description: str):
+    with get_connection() as conn:
+        # Crear tabla si no existe
+        conn.execute('''CREATE TABLE IF NOT EXISTS faults (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            component TEXT,
+            severity TEXT,
+            description TEXT,
+            status TEXT DEFAULT 'ACTIVE',
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )''')
         conn.execute(
             "INSERT INTO faults (component, severity, description) VALUES (?, ?, ?)",
-            (component, severity, description),
+            (component, severity, description)
         )
         conn.commit()
 
-
-def get_active_faults() -> Iterable[dict]:
+def get_active_faults():
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT * FROM faults WHERE is_fixed = 0 ORDER BY detected_at DESC"
-        ).fetchall()
-    return [dict(row) for row in rows]
+        try:
+            cursor = conn.execute("SELECT * FROM faults WHERE status = 'ACTIVE' ORDER BY timestamp DESC")
+            return [dict(row) for row in cursor.fetchall()]
+        except:
+            return []
 
-
-def mark_fault_fixed(fault_id: int) -> None:
+def mark_fault_fixed(fault_id: int):
     with get_connection() as conn:
-        conn.execute("UPDATE faults SET is_fixed = 1 WHERE id = ?", (fault_id,))
+        conn.execute("UPDATE faults SET status = 'FIXED' WHERE id = ?", (fault_id,))
         conn.commit()
-
 
 def delete_log(log_id: int) -> None:
     with get_connection() as conn:
         conn.execute("DELETE FROM logs WHERE id = ?", (log_id,))
         conn.commit()
 
-
 def delete_entry(entry_id: int) -> None:
     with get_connection() as conn:
         conn.execute("DELETE FROM maintenance WHERE id = ?", (entry_id,))
         conn.commit()
 
-
-def update_entry(entry_id: int, date: str, mileage_km: int, description: str, category: str, cost: float) -> None:
+def update_entry(entry_id: int, date: str, mileage_km: int, description: str, category: str, cost: float, notes: str = "") -> None:
     with get_connection() as conn:
         conn.execute(
             """UPDATE maintenance 
-               SET date = ?, mileage_km = ?, description = ?, category = ?, cost_eur = ?
+               SET date = ?, mileage_km = ?, description = ?, category = ?, cost_eur = ?, notes = ?
                WHERE id = ?""",
-            (date, mileage_km, description, category, cost, entry_id)
+            (date, mileage_km, description, category, cost, notes, entry_id)
         )
         conn.commit()

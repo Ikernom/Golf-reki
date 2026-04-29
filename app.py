@@ -217,7 +217,7 @@ elif menu == "🔧 Mantenimiento":
 
             if st.form_submit_button("Guardar Registro"):
                 if description:
-                    add_entry(MaintenanceEntry(str(date), int(mileage), category, description, float(cost), notes))
+                    add_entry(str(date), int(mileage), category, description, float(cost), notes)
                     st.success("¡Registro guardado con éxito!")
                     st.rerun()
                 else:
@@ -244,9 +244,10 @@ elif menu == "🔧 Mantenimiento":
                         new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
                                              index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry.get('category', 'Otros')))
                         new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
+                        new_notes = st.text_area("Notas adicionales", value=entry.get('notes', ''))
                         
                         if st.form_submit_button("💾 Guardar Cambios"):
-                            update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost)
+                            update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost, new_notes)
                             st.success("Entrada actualizada correctamente")
                             st.rerun()
 
