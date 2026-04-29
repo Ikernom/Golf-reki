@@ -237,14 +237,21 @@ elif menu == "🔧 Mantenimiento":
             text-shadow: 0 0 10px rgba(28, 71, 255, 0.8) !important;
         }
         
-        /* Estilo para los inputs de registro/edición */
-        div.stForm input, div.stForm textarea {
+        /* Estilo para los inputs de registro/edición y SELECTBOXES */
+        div.stForm input, div.stForm textarea, div[data-baseweb="select"] {
             background-color: #000000 !important;
             color: #1c47ff !important;
             border: 1px solid #ff0000 !important;
             box-shadow: inset 0 0 10px rgba(28, 71, 255, 0.2) !important;
             text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
             font-family: 'JetBrains Mono', monospace !important;
+            border-radius: 4px !important;
+        }
+        
+        /* Asegurar que el texto dentro del selectbox sea indigo */
+        div[data-baseweb="select"] span, div[data-baseweb="select"] div {
+            color: #1c47ff !important;
+            text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
         }
         
         /* Ajuste de labels en mantenimiento */
