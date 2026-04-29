@@ -282,7 +282,7 @@ elif menu == "🔧 Mantenimiento":
         st.info("No hay intervenciones que coincidan con los filtros.")
     else:
         for entry in entries:
-            # Contenedor relativo con estilo Retro Golf (Indigo & Red)
+            # Contenedor relativo con estilo MK4 Real (Electric Blue & Fire Red)
             st.markdown(f"""
                 <div style="position: relative; height: 0px; margin-bottom: 0px;">
                     <div style="position: absolute; 
@@ -291,18 +291,19 @@ elif menu == "🔧 Mantenimiento":
                                 top: 12px; 
                                 z-index: 99; 
                                 pointer-events: none;">
-                        <span style="background: linear-gradient(135deg, #1e293b 0%, #312e81 100%); 
-                                     color: #60a5fa; 
+                        <span style="background: rgba(0, 0, 0, 0.9); 
+                                     color: #00d4ff; 
                                      padding: 3px 14px; 
-                                     border-radius: 4px; 
-                                     font-size: 0.7rem; 
-                                     font-weight: bold;
-                                     letter-spacing: 1px;
-                                     border: 1px solid #ef4444;
-                                     box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+                                     border-radius: 2px; 
+                                     font-size: 0.75rem; 
+                                     font-weight: 800;
+                                     letter-spacing: 2px;
+                                     border: 2px solid #ff0000;
+                                     box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
                                      text-transform: uppercase;
-                                     font-family: 'Courier New', Courier, monospace;">
-                            <span style="color: #ef4444;">●</span> {entry['category']}
+                                     font-family: 'JetBrains Mono', monospace;
+                                     text-shadow: 0 0 5px rgba(0, 212, 255, 0.8);">
+                            <span style="color: #ff0000;">●</span> {entry['category']}
                         </span>
                     </div>
                 </div>

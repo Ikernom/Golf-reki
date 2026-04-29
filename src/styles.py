@@ -82,49 +82,53 @@ def apply_styles():
             font-weight: 700 !important;
         }
 
-        /* Titles - Indigo Gauge Glow */
+        /* Titles - MK4 Electric Blue Display */
         h1, h2, h3, .stSubheader {
-            color: #4338ca !important;
-            text-shadow: 0 0 15px rgba(67, 56, 202, 0.6) !important;
+            color: #00aaff !important;
+            text-shadow: 0 0 10px rgba(0, 170, 255, 0.8), 0 0 20px rgba(0, 170, 255, 0.4) !important;
             font-family: 'JetBrains Mono', monospace !important;
             text-transform: uppercase !important;
-            letter-spacing: 2px !important;
+            letter-spacing: 3px !important;
+            font-weight: 800 !important;
         }
 
         /* Expanders - Dashboard Units */
         [data-testid="stExpander"] {
-            border: 1.5px solid #ef4444 !important;
-            background-color: #0c0c0e !important;
-            border-radius: 4px !important;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.1) !important;
+            border: 2px solid #ff0000 !important;
+            background-color: #000000 !important;
+            border-radius: 2px !important;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3) !important;
+            margin-bottom: 1rem !important;
         }
         
         [data-testid="stExpander"] summary p {
-            color: #6366f1 !important;
+            color: #00d4ff !important;
             font-family: 'JetBrains Mono', monospace !important;
             font-weight: 700 !important;
-            text-shadow: 0 0 10px rgba(99, 102, 241, 0.5) !important;
+            text-shadow: 0 0 8px rgba(0, 212, 255, 0.7) !important;
+            font-size: 1.1rem !important;
         }
 
-        /* Buttons - Backlit Switches */
+        /* Buttons - MK4 Red Needles */
         div.stButton > button {
-            background-color: #0f172a !important;
-            color: #ef4444 !important;
-            border: 1.5px solid #ef4444 !important;
-            border-radius: 4px !important;
-            padding: 0.5rem 1rem !important;
+            background-color: #000000 !important;
+            color: #ff0000 !important;
+            border: 2px solid #ff0000 !important;
+            border-radius: 2px !important;
+            padding: 0.6rem 1.2rem !important;
             font-family: 'JetBrains Mono', monospace !important;
             text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2) !important;
+            font-weight: bold !important;
+            letter-spacing: 1.5px !important;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.4) !important;
             transition: all 0.2s ease-in-out !important;
         }
         
         div.stButton > button:hover {
-            background-color: #ef4444 !important;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6) !important;
+            background-color: #ff0000 !important;
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.8) !important;
             color: #ffffff !important;
-            transform: translateY(-1px);
+            transform: scale(1.02);
         }
 
         /* Tabs - Blue Selection */
