@@ -22,7 +22,8 @@ from src.maintenance import (
     get_last_mileage_for_category,
     add_fault,
     get_active_faults,
-    mark_fault_fixed
+    mark_fault_fixed,
+    delete_log
 )
 from src.styles import apply_styles
 
@@ -284,7 +285,19 @@ elif menu == "📈 Análisis de Logs":
         
         # Mostrar análisis del mecánico
         if structure.get("analysis"):
-            st.subheader("🔍 Análisis del Mecánico Virtual")
+            col_a, col_b = st.columns([4, 1])
+            with col_a:
+                st.subheader("🔍 Análisis del Mecánico Virtual")
+            with col_b:
+                if st.button("🗑️ Eliminar Log", use_container_width=True, help="Borra este log del historial permanentemente"):
+                    if active_log_id:
+                        delete_log(active_log_id)
+                        del st.session_state["raw_csv"]
+                        del st.session_state["structure"]
+                        if "active_log_id" in st.session_state: del st.session_state["active_log_id"]
+                        st.success("Log eliminado correctamente.")
+                        st.rerun()
+            
             st.markdown(structure["analysis"])
         
         # Generar gráficas

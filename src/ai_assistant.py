@@ -26,15 +26,29 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
         csv_sample = raw_csv_text[:8000]
 
         prompt = f"""Eres un experto en VCDS y motores VW TDI ALH.
-Analiza este log CSV y devuelve SOLO un objeto JSON con:
-1. "separator": "," o ";"
-2. "header_rows": número de filas de cabecera.
-3. "groups": lista de objetos con "gid", "name" y "columns" (lista de nombres de columnas).
-4. "analysis": Resumen del estado mecánico (máx 100 palabras).
-5. "detected_faults": Lista de fallos encontrados (si los hay), cada uno con:
-   - "component": Nombre del componente (ej: "MAF", "Turbo", "Timing").
-   - "severity": "CRITICAL" o "WARNING".
-   - "description": Explicación técnica breve.
+Analiza este log CSV y devuelve SOLO un objeto JSON con esta estructura exacta:
+{{
+  "separator": "," o ";",
+  "header_rows": número de filas de cabecera hasta que empiezan los nombres de las columnas,
+  "groups": [
+    {{
+      "gid": "número del grupo",
+      "name": "nombre descriptivo",
+      "columns": ["Nombre Exacto Columna 1", "Nombre Exacto Columna 2"]
+    }}
+  ],
+  "analysis": "resumen técnico",
+  "detected_faults": [
+    {{
+      "component": "Nombre",
+      "severity": "CRITICAL/WARNING",
+      "description": "Explicación"
+    }}
+  ]
+}}
+
+IMPORTANTE: Los nombres en "columns" deben ser EXACTAMENTE iguales a los que aparecen en el CSV.
+Si no hay fallos, "detected_faults" debe ser [].
 
 CSV:
 {csv_sample}"""
@@ -42,7 +56,7 @@ CSV:
         response = model.generate_content(prompt)
         text = response.text.strip()
 
-        # Limpiar markdown
+        # Limpiar markdown si viene envuelto
         text = re.sub(r'^```json\s*', '', text)
         text = re.sub(r'\s*```$', '', text)
 
@@ -54,7 +68,7 @@ CSV:
 
 def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
     """
-    Usando la estructura que Gemini nos devolvió, construye las gráficas.
+    Construye gráficas usando Plotly basándose en el JSON de estructura.
     """
     import io
 
@@ -66,49 +80,61 @@ def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
         return []
 
     try:
-        # Intentar leer el CSV
+        # Leer el CSV con el separador y cabecera detectados
         df = pd.read_csv(io.StringIO(raw_csv_text), sep=sep, header=header_rows, on_bad_lines='skip')
         
-        # Limpiar nombres de columnas (quitar espacios)
-        df.columns = [c.strip() for c in df.columns]
+        # Limpiar nombres de columnas
+        df.columns = [str(c).strip() for c in df.columns]
         
         figures = []
         for g in groups:
             fig = go.Figure()
             
-            # Buscar columna de tiempo (suele ser la primera del CSV o contener 'TIME')
-            time_col = df.columns[0]
+            # Detectar columna de tiempo
+            time_col = None
             for col in df.columns:
-                if 'TIME' in col.upper():
+                if 'TIME' in col.upper() or 'STAMP' in col.upper():
                     time_col = col
                     break
             
-            valid_cols = [c for c in g["columns"] if c in df.columns]
+            if not time_col:
+                time_col = df.columns[0] # Fallback a la primera columna
+
+            # Filtrar columnas que realmente existen en el DF
+            valid_cols = [c.strip() for c in g.get("columns", []) if c.strip() in df.columns]
             
             if not valid_cols:
                 continue
 
             for col in valid_cols:
+                # Asegurarse de que los datos son numéricos
+                y_data = pd.to_numeric(df[col], errors='coerce')
+                if y_data.isna().all():
+                    continue
+                    
                 fig.add_trace(go.Scatter(
                     x=df[time_col],
-                    y=df[col],
+                    y=y_data,
                     name=col,
-                    mode='lines+markers' if len(df) < 50 else 'lines'
+                    mode='lines'
                 ))
             
+            if len(fig.data) == 0:
+                continue
+
             fig.update_layout(
-                title=f"Grupo {g['gid']}: {g['name']}",
+                title=f"GRUPO {g.get('gid', '???')}: {g.get('name', 'Análisis')}",
                 xaxis_title="Tiempo (s)",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#ffffff"),
-                hovermode="x unified"
+                hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            figures.append({"name": g["name"], "gid": g["gid"], "fig": fig})
+            figures.append({"name": g.get("name"), "gid": g.get("gid"), "fig": fig})
             
         return figures
-    except Exception as e:
-        st.error(f"Error generando gráficas: {e}")
+    except Exception:
         return []
 
 
@@ -126,25 +152,19 @@ def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -
 
         vehicle = f"Golf IV 1.9 TDI ALH, {info.get('current_mileage', '280000')} km"
         
-        # Construir el contexto de la conversación
         history_text = ""
         if history:
-            for msg in history[-10:]: # Enviamos los últimos 10 mensajes para no saturar
+            for msg in history[-8:]:
                 role = "Mecánico" if msg["role"] == "assistant" else "Usuario"
                 history_text += f"{role}: {msg['content']}\n"
 
         prompt = f"""Eres un mecánico experto en motores VW TDI ALH.
 Vehículo: {vehicle}
+Log VCDS: {raw_csv_text[:4000]}
+Historial: {history_text}
+Usuario: {user_query}
 
-Log VCDS (fragmento):
-{raw_csv_text[:5000]}
-
-Historial de conversación:
-{history_text}
-
-Usuario (pregunta actual): {user_query}
-
-Responde en español, de forma profesional pero cercana. Mantén la continuidad de la charla anterior."""
+Responde en español, breve y directo. Si te preguntan por gráficas, recuerda que TÚ YA HAS ANALIZADO los datos y el sistema las está dibujando, no digas que no puedes verlas."""
 
         response = model.generate_content(prompt)
         return response.text

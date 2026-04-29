@@ -135,3 +135,9 @@ def mark_fault_fixed(fault_id: int) -> None:
     with get_connection() as conn:
         conn.execute("UPDATE faults SET is_fixed = 1 WHERE id = ?", (fault_id,))
         conn.commit()
+
+
+def delete_log(log_id: int) -> None:
+    with get_connection() as conn:
+        conn.execute("DELETE FROM logs WHERE id = ?", (log_id,))
+        conn.commit()
