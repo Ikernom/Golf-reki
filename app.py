@@ -630,37 +630,51 @@ elif menu == "⚙️ Configuración":
     st.title("Ajustes del Vehículo")
     info = get_vehicle_info()
     
-    # Estilo MK4 Full Indigo-Red para el formulario
+    # Estilo MK4 LCD Pro para el formulario
     st.markdown("""
         <style>
         div[data-testid="stForm"] {
             border: 2px solid #ff0000 !important;
             background-color: #000000 !important;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3) !important;
-            padding: 2rem !important;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2) !important;
+            padding: 2.5rem !important;
+            border-radius: 4px !important;
         }
-        /* Estilo para los labels de los inputs */
+        
+        /* Labels con Estilo Indigo Glow */
         div[data-testid="stForm"] label p {
             color: #1c47ff !important;
+            text-shadow: 0 0 12px rgba(28, 71, 255, 0.8) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 2px !important;
+            font-size: 0.9rem !important;
+        }
+        
+        /* Inputs con Estilo Caja LCD */
+        div[data-testid="stForm"] input {
+            background-color: #000000 !important;
+            color: #1c47ff !important;
+            border: 1px solid #ff0000 !important;
+            border-radius: 4px !important;
+            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.3) !important;
             text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
             font-family: 'JetBrains Mono', monospace !important;
             font-weight: bold !important;
-            text-transform: uppercase !important;
-            font-size: 0.85rem !important;
-            letter-spacing: 1px !important;
+            padding: 10px !important;
         }
-        /* Estilo para los inputs */
-        div[data-testid="stForm"] input {
-            background-color: #0a0a0a !important;
-            color: #ffffff !important;
-            border: 1px solid #ff0000 !important;
-            border-radius: 2px !important;
+        
+        /* Ajuste para inputs numéricos y selectores */
+        div[data-testid="stForm"] div[data-baseweb="input"], 
+        div[data-testid="stForm"] div[data-baseweb="select"] {
+            background-color: transparent !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
     with st.form("vehicle_info"):
-        st.markdown("<h2 style='color:#1c47ff; text-shadow: 0 0 15px rgba(28,71,255,0.8); margin-bottom:20px;'>📋 FICHA TÉCNICA</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#1c47ff; text-shadow: 0 0 20px rgba(28,71,255,0.9); margin-bottom:25px; letter-spacing:4px;'>📊 SISTEMA CENTRAL</h2>", unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         with col1:
@@ -672,7 +686,7 @@ elif menu == "⚙️ Configuración":
             last_oil_cfg = st.number_input("Kilometraje Último Cambio Aceite (km)", value=int(info.get("last_oil_change_km", 270000)), min_value=0)
             oil_interval = st.number_input("Intervalo Cambio Aceite (km)", value=int(info.get("oil_interval", 10000)), min_value=1000, step=500)
         
-        st.markdown("<br><h2 style='color:#1c47ff; text-shadow: 0 0 15px rgba(28,71,255,0.8); margin-bottom:20px;'>🤖 MECÁNICO IA</h2>", unsafe_allow_html=True)
+        st.markdown("<br><h2 style='color:#1c47ff; text-shadow: 0 0 20px rgba(28,71,255,0.9); margin-bottom:25px; letter-spacing:4px;'>🤖 MECÁNICO IA</h2>", unsafe_allow_html=True)
         gemini_key = st.text_input("Gemini API Key", value=info.get("gemini_api_key", ""), type="password")
 
         st.markdown("<br>", unsafe_allow_html=True)
