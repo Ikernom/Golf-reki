@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 import json
 import io
@@ -23,7 +24,9 @@ from src.maintenance import (
     add_fault,
     get_active_faults,
     mark_fault_fixed,
-    delete_log
+    delete_log,
+    delete_entry,
+    update_entry
 )
 from src.styles import apply_styles
 
@@ -218,13 +221,39 @@ elif menu == "🔧 Mantenimiento":
                     st.rerun()
                 else:
                     st.error("La descripción es obligatoria.")
-
-    st.subheader("Historial Completo")
+    
+    st.divider()
+    st.subheader("📋 Registro Histórico")
     entries = list_entries()
-    if entries:
-        st.dataframe(pd.DataFrame(entries), use_container_width=True, hide_index=True)
+    
+    if not entries:
+        st.info("No hay intervenciones registradas.")
     else:
-        st.info("Aún no has registrado ningún mantenimiento.")
+        for entry in entries:
+            with st.expander(f"🛠️ {entry['date']} - {entry['description']} ({entry['mileage_km']:,} km)"):
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    # Formulario de edición (dentro del expander)
+                    with st.form(f"edit_form_{entry['id']}"):
+                        new_date = st.date_input("Fecha", value=datetime.strptime(entry['date'], '%Y-%m-%d'))
+                        new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
+                        new_desc = st.text_input("Descripción", value=entry['description'])
+                        new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
+                                             index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry['category']))
+                        new_cost = st.number_input("Coste (€)", value=float(entry['cost']))
+                        
+                        if st.form_submit_button("💾 Guardar Cambios"):
+                            update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost)
+                            st.success("Entrada actualizada correctamente")
+                            st.rerun()
+
+                with col2:
+                    st.markdown("<br><br><br>", unsafe_allow_html=True) # Espaciado
+                    if st.button("🗑️ Eliminar", key=f"del_{entry['id']}", use_container_width=True):
+                        delete_entry(entry['id'])
+                        st.warning("Entrada eliminada")
+                        st.rerun()
 
 # --- ANÁLISIS DE LOGS ---
 elif menu == "📈 Análisis de Logs":
@@ -340,46 +369,62 @@ elif menu == "📈 Análisis de Logs":
         else:
             st.warning("🤖 La IA no ha podido agrupar las columnas automáticamente.")
             
+            # --- FUNCIÓN DE ESCANEO ROBUSTO ---
+            def get_clean_df(text):
+                lines = text.splitlines()
+                # Detectar separador
+                separators = [",", ";", "\t"]
+                sep_counts = {s: text.count(s) for s in separators}
+                best_sep = max(sep_counts, key=sep_counts.get)
+                
+                # Buscar la fila con más columnas (cabecera real)
+                max_cols = 0
+                header_idx = 0
+                for i, line in enumerate(lines[:100]):
+                    count = line.count(best_sep)
+                    if count > max_cols:
+                        max_cols = count
+                        header_idx = i
+                
+                df = pd.read_csv(io.StringIO("\n".join(lines[header_idx:])), sep=best_sep, on_bad_lines='skip', engine='python')
+                df.columns = [str(c).strip() for c in df.columns]
+                return df, best_sep
+
             # --- BOTÓN DE FUERZA BRUTA ---
             if st.button("🚀 GENERAR GRÁFICAS DE TODO EL LOG", use_container_width=True):
                 try:
-                    lines = raw_csv.splitlines()
-                    best_sep = "," if raw_csv.count(",") > raw_csv.count(";") else ";"
-                    h_idx = 0
-                    for i, line in enumerate(lines[:40]):
-                        if line.count(best_sep) >= 3 and ("Group" in line or "TIME" in line.upper()):
-                            h_idx = i
-                            break
-                    
-                    df_all = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
-                    df_all.columns = [str(c).strip() for c in df_all.columns]
-                    
-                    # Identificar columnas numéricas reales
+                    df_all, _ = get_clean_df(raw_csv)
                     numeric_df = df_all.apply(pd.to_numeric, errors='coerce')
                     cols_to_plot = [c for c in numeric_df.columns if numeric_df[c].notna().sum() > 5 and 'TIME' not in c.upper()]
                     
                     if cols_to_plot:
-                        # Agrupamos de 4 en 4 para no saturar
+                        t_col = next((c for c in df_all.columns if 'TIME' in c.upper()), df_all.columns[0])
                         for i in range(0, len(cols_to_plot), 4):
                             chunk = cols_to_plot[i:i+4]
                             fig_all = go.Figure()
-                            t_col = next((c for c in df_all.columns if 'TIME' in c.upper()), df_all.columns[0])
-                            
                             for col in chunk:
                                 fig_all.add_trace(go.Scatter(x=df_all[t_col], y=numeric_df[col], name=col, mode='lines'))
-                            
-                            st.subheader(f"Bloque de Datos {i//4 + 1}")
-                            fig_all.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified")
+                            st.subheader(f"Bloque {i//4 + 1}")
                             st.plotly_chart(fig_all, use_container_width=True)
                     else:
-                        st.error("No se encontraron columnas con datos numéricos suficientes.")
+                        st.error("No se detectaron columnas numéricas.")
                 except Exception as e:
-                    st.error(f"Error al graficar todo: {e}")
+                    st.error(f"Error: {e}")
 
-            # Mantener el selector manual abajo por si acaso
+            # --- CONSTRUCTOR MANUAL ---
             with st.expander("🛠️ CONSTRUCTOR MANUAL"):
-                # (Lógica de multiselect que ya teníamos)
-                pass
+                try:
+                    df_m, _ = get_clean_df(raw_csv)
+                    t_col = next((c for c in df_m.columns if 'TIME' in c.upper()), df_m.columns[0])
+                    all_cols = [c for c in df_m.columns if c != t_col]
+                    selected = st.multiselect("Elige columnas:", all_cols)
+                    if selected:
+                        fig_m = go.Figure()
+                        for s in selected:
+                            fig_m.add_trace(go.Scatter(x=df_m[t_col], y=pd.to_numeric(df_m[s], errors='coerce'), name=s))
+                        st.plotly_chart(fig_m, use_container_width=True)
+                except:
+                    st.write("No se pudo cargar el selector manual.")
         
         # Datos crudos (con salto de cabecera inteligente)
         with st.expander("📋 Datos crudos del CSV"):

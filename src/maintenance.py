@@ -141,3 +141,20 @@ def delete_log(log_id: int) -> None:
     with get_connection() as conn:
         conn.execute("DELETE FROM logs WHERE id = ?", (log_id,))
         conn.commit()
+
+
+def delete_entry(entry_id: int) -> None:
+    with get_connection() as conn:
+        conn.execute("DELETE FROM maintenance WHERE id = ?", (entry_id,))
+        conn.commit()
+
+
+def update_entry(entry_id: int, date: str, mileage_km: int, description: str, category: str, cost: float) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            """UPDATE maintenance 
+               SET date = ?, mileage_km = ?, description = ?, category = ?, cost = ?
+               WHERE id = ?""",
+            (date, mileage_km, description, category, cost, entry_id)
+        )
+        conn.commit()
