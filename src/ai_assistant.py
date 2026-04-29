@@ -5,11 +5,24 @@ import streamlit as st
 import json
 import re
 import io
+import time
 from src.maintenance import get_vehicle_info
 
+# --- WRAPPER DE REINTENTO PARA EVITAR 429 ---
+def safe_generate_content(model, prompt, max_retries=3):
+    """Lanza la petición a Gemini con reintentos automáticos si hay saturación (429)."""
+    for attempt in range(max_retries):
+        try:
+            return model.generate_content(prompt)
+        except Exception as e:
+            if "429" in str(e) and attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 5
+                time.sleep(wait_time)
+                continue
+            raise e
 
 def ai_analyze_csv(raw_csv_text: str) -> dict:
-    """Analiza el log con la última versión de Gemini Flash (Optimizado)."""
+    """Analiza el log con reintentos automáticos."""
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
     if not api_key: return {"error": "⚠️ Configura API Key."}
@@ -19,18 +32,18 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
         best_sep = "," if raw_csv_text.count(",") > raw_csv_text.count(";") else ";"
         h_idx = 0
         cols = []
-        for i, line in enumerate(lines[:30]): # Escaneo más corto
+        for i, line in enumerate(lines[:30]):
             parts = [p.strip() for p in line.split(best_sep)]
             if len(parts) > len(cols):
                 cols = parts
                 h_idx = i
         
-        sample = "\n".join(lines[h_idx:h_idx+80]) # Muestra reducida para ahorrar tokens
+        sample = "\n".join(lines[h_idx:h_idx+80])
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
         
-        prompt = f"Analiza este log de VCDS (VW Golf MK4). Devuelve SOLO JSON con grupos de gráficas (nombre y columnas) y un breve análisis técnico. Columnas: {cols}. Muestra: {sample}"
-        response = model.generate_content(prompt)
+        prompt = f"Analiza log VCDS Golf MK4. Devuelve SOLO JSON con grupos de gráficas y análisis. Columnas: {cols}. Muestra: {sample}"
+        response = safe_generate_content(model, prompt)
         text = response.text.strip()
         if text.startswith("```"):
             text = re.sub(r'^```json\s*|\s*```$', '', text)
@@ -38,9 +51,8 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
     except Exception as e:
         return {"error": f"Error IA: {str(e)}"}
 
-
 def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
-    """Construye gráficas sin llamadas extra a la IA."""
+    """Construye gráficas sin llamadas extra."""
     try:
         lines = raw_csv_text.splitlines()
         best_sep = "," if raw_csv_text.count(",") > raw_csv_text.count(";") else ";"
@@ -66,9 +78,8 @@ def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
         return figures
     except: return []
 
-
 def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -> str:
-    """Chat de log optimizado."""
+    """Chat de log con auto-reintento."""
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
     if not api_key: return "⚠️ Configura API Key."
@@ -76,15 +87,13 @@ def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
         prompt = f"Mecánico TDI. Log: {raw_csv_text[:1500]}. Pregunta: {user_query}. Sé breve."
-        return model.generate_content(prompt).text
+        return safe_generate_content(model, prompt).text
     except Exception as e:
-        if "429" in str(e): return "⚠️ **SISTEMA SATURADO**. Espera 20s."
-        return f"Error: {e}"
+        return "⚠️ **ECU BUSY**. Reintentando..." if "429" in str(e) else f"Error: {e}"
 
-
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def ai_master_chat_response(user_query: str) -> str:
-    """Chat maestro con visión TOTAL y CACHÉ para evitar 429."""
+    """Chat maestro con visión TOTAL, CACHÉ y REINTENTOS."""
     from src.maintenance import (
         get_vehicle_info, list_entries, list_future_mods, 
         get_active_faults
@@ -98,12 +107,13 @@ def ai_master_chat_response(user_query: str) -> str:
         wishlist = [f"{m['description']} ({m['priority']})" for m in list_future_mods()]
         averias = [f['component'] for f in get_active_faults()]
         
-        contexto = f"Golf MK4. KM: {info.get('current_mileage')}. Mant: {mantenimiento}. Mods: {wishlist}. Averías: {averias}."
+        contexto = f"Golf MK4 ({info.get('engine_type')}). KM: {info.get('current_mileage')}. Mant: {mantenimiento}. Mods: {wishlist}. Averías: {averias}."
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
-        response = model.generate_content(f"{contexto}\nPregunta: {user_query}")
+        response = safe_generate_content(model, f"{contexto}\nPregunta: {user_query}")
         return response.text
     except Exception as e:
-        if "429" in str(e): return "⚠️ **SISTEMA SATURADO**. Espera 10s."
+        if "429" in str(e):
+            return "⚠️ **CONEXIÓN ECU SATURADA**. El sistema de Google está limitando las peticiones. Por favor, espera unos segundos y pulsa Reset si persiste."
         return f"Error: {str(e)}"
