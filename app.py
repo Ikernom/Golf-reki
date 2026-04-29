@@ -16,12 +16,36 @@ from src.maintenance import (
     update_vehicle_info,
     save_log,
     list_logs,
-    get_log
+    get_log,
+    get_last_mileage_for_category
 )
 from src.styles import apply_styles
 
 # Initialize
-st.set_page_config(page_title="ALH Care Premium", page_icon="🏎️", layout="wide")
+st.set_page_config(
+    page_title="Golf-reki ALH Care",
+    page_icon="🏎️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Estilos globales adicionales para asegurar que el botón de la sidebar sea visible
+st.markdown("""
+    <style>
+    /* Asegurar que el botón de abrir sidebar sea visible y estilo Golf */
+    button[kind="headerNoPadding"] {
+        background-color: rgba(37, 99, 235, 0.2) !important;
+        border-radius: 5px !important;
+        color: #2563eb !important;
+    }
+    button[kind="headerNoPadding"]:hover {
+        background-color: rgba(37, 99, 235, 0.4) !important;
+        box-shadow: 0 0 10px #2563eb;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Inicializar DB
 init_db()
 apply_styles()
 
