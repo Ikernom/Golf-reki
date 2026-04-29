@@ -94,7 +94,7 @@ with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Lógica de persistencia de página (Callback para evitar el doble clic)
-    menu_options = ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"]
+    menu_options = ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "🧠 Master Chat", "⚙️ Configuración"]
     
     if "active_menu" not in st.session_state:
         st.session_state.active_menu = st.query_params.get("page", "🏠 Dashboard")
@@ -620,6 +620,43 @@ elif menu == "📈 Análisis de Logs":
             # GUARDAR CHAT ACTUALIZADO EN DB
             if active_log_id:
                 update_log_chat(active_log_id, json.dumps(st.session_state.ai_chat_history))
+
+# --- MASTER CHAT ---
+elif menu == "🧠 Master Chat":
+    st.title("Cerebro del Proyecto")
+    st.markdown("Consulta cualquier duda sobre el mantenimiento, mods o estado general de tu coche. **Gemini** tiene acceso a toda tu base de datos.")
+    
+    if "master_chat_history" not in st.session_state:
+        st.session_state.master_chat_history = []
+
+    # Botón para limpiar chat
+    col_chat1, col_chat2 = st.columns([5, 1])
+    with col_chat2:
+        if st.button("🧹 Reset", use_container_width=True):
+            st.session_state.master_chat_history = []
+            st.rerun()
+
+    # Contenedor de chat
+    chat_container = st.container()
+    
+    with chat_container:
+        for msg in st.session_state.master_chat_history:
+            with st.chat_message(msg["role"], avatar="🏎️" if msg["role"] == "assistant" else None):
+                st.write(msg["content"])
+
+    if chat_prompt := st.chat_input("Dime, ¿qué quieres saber de tu Golf?"):
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(chat_prompt)
+        st.session_state.master_chat_history.append({"role": "user", "content": chat_prompt})
+        
+        with chat_container:
+            with st.chat_message("assistant", avatar="🏎️"):
+                with st.spinner("Consultando base de datos..."):
+                    from src.ai_assistant import ai_master_chat_response
+                    response = ai_master_chat_response(chat_prompt, st.session_state.master_chat_history)
+                    st.write(response)
+        st.session_state.master_chat_history.append({"role": "assistant", "content": response})
 
 # --- CONFIGURACIÓN ---
 elif menu == "⚙️ Configuración":

@@ -171,3 +171,57 @@ DATOS DEL LOG (CSV):
 USUARIO PREGUNTA: {user_query}"""
         return model.generate_content(prompt).text
     except Exception as e: return f"Error en Chat: {e}"
+
+
+def ai_master_chat_response(user_query: str, history: list = None) -> str:
+    """Chat maestro con visión global de todo el vehículo."""
+    from src.maintenance import (
+        get_vehicle_info, list_entries, list_future_mods, 
+        get_active_faults, get_reminders
+    )
+    
+    info = get_vehicle_info()
+    api_key = info.get("gemini_api_key")
+    if not api_key: return "⚠️ Configura API Key en Configuración."
+
+    # Recopilar contexto global
+    try:
+        mantenimiento = list_entries()[:15] # Últimos 15 registros
+        wishlist = list_future_mods()
+        averias = get_active_faults()
+        recordatorios = get_reminders()
+        km_actual = info.get("odo_actual", "Desconocido")
+
+        contexto = f"""ESTÁS ACTUANDO COMO EL 'CEREBRO' DE UN PROYECTO VOLKSWAGEN GOLF MK4.
+Tienes acceso a TODA la información del vehículo del usuario.
+
+INFORMACIÓN DEL COCHE:
+- Motor/Modelo: {info.get('engine_type', 'Desconocido')} {info.get('horse_power', '')} CV
+- Kilometraje Actual: {km_actual} KM
+
+HISTORIAL RECIENTE:
+{json.dumps([{'fecha': e['date'], 'km': e['mileage_km'], 'desc': e['description']} for e in mantenimiento], indent=2)}
+
+MODS PENDIENTES (WISHLIST):
+{json.dumps([{'mod': m['description'], 'prioridad': m['priority']} for m in wishlist], indent=2)}
+
+AVERÍAS / ALERTAS ACTIVAS:
+{json.dumps([{'componente': f['component'], 'desc': f['description']} for f in averias], indent=2)}
+
+PRÓXIMOS RECORDATORIOS:
+{json.dumps([{'titulo': r['title'], 'km_limite': r['due_mileage']} for r in recordatorios], indent=2)}
+
+INSTRUCCIONES:
+- Responde de forma técnica pero motivadora.
+- Si el usuario pregunta por mantenimiento, cruza datos (ej: 'Viendo que ya hiciste X, te recomiendo Y').
+- Si el usuario pregunta por mods, opina basándote en su motor y las averías que tenga.
+- Usa un tono de experto en Golf IV (VAG).
+"""
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-flash-latest')
+        full_prompt = f"{contexto}\n\nUSUARIO PREGUNTA: {user_query}"
+        response = model.generate_content(full_prompt)
+        return response.text
+    except Exception as e:
+        return f"Error en Master Chat: {str(e)}"
