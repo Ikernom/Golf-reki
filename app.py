@@ -282,7 +282,7 @@ elif menu == "🔧 Mantenimiento":
         st.info("No hay intervenciones que coincidan con los filtros.")
     else:
         for entry in entries:
-            # Contenedor relativo con ajuste fino de posición
+            # Contenedor relativo con estilo Retro Golf (Indigo & Red)
             st.markdown(f"""
                 <div style="position: relative; height: 0px; margin-bottom: 0px;">
                     <div style="position: absolute; 
@@ -291,18 +291,18 @@ elif menu == "🔧 Mantenimiento":
                                 top: 12px; 
                                 z-index: 99; 
                                 pointer-events: none;">
-                        <span style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.4) 0%, rgba(29, 78, 216, 0.4) 100%); 
-                                     color: #e0e7ff; 
+                        <span style="background: linear-gradient(135deg, #1e293b 0%, #312e81 100%); 
+                                     color: #60a5fa; 
                                      padding: 3px 14px; 
-                                     border-radius: 20px; 
+                                     border-radius: 4px; 
                                      font-size: 0.7rem; 
-                                     font-weight: 600;
-                                     letter-spacing: 0.5px;
-                                     border: 1px solid rgba(255,255,255,0.15);
-                                     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-                                     backdrop-filter: blur(8px);
-                                     text-transform: uppercase;">
-                            📁 {entry['category']}
+                                     font-weight: bold;
+                                     letter-spacing: 1px;
+                                     border: 1px solid #ef4444;
+                                     box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+                                     text-transform: uppercase;
+                                     font-family: 'Courier New', Courier, monospace;">
+                            <span style="color: #ef4444;">●</span> {entry['category']}
                         </span>
                     </div>
                 </div>

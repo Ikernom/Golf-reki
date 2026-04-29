@@ -84,28 +84,46 @@ def apply_styles():
 
         /* Titles - Indigo Gauge Glow */
         h1, h2, h3, .stSubheader {
-            color: #2e5bff !important;
-            text-shadow: 0 0 20px rgba(46, 91, 255, 0.8) !important;
+            color: #4338ca !important;
+            text-shadow: 0 0 15px rgba(67, 56, 202, 0.6) !important;
             font-family: 'JetBrains Mono', monospace !important;
             text-transform: uppercase !important;
+            letter-spacing: 2px !important;
+        }
+
+        /* Expanders - Dashboard Units */
+        [data-testid="stExpander"] {
+            border: 1.5px solid #ef4444 !important;
+            background-color: #0c0c0e !important;
+            border-radius: 4px !important;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.1) !important;
+        }
+        
+        [data-testid="stExpander"] summary p {
+            color: #6366f1 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: 700 !important;
+            text-shadow: 0 0 10px rgba(99, 102, 241, 0.5) !important;
         }
 
         /* Buttons - Backlit Switches */
         div.stButton > button {
-            background-color: #1a1a1a !important;
-            color: #ff0000 !important;
-            border: 1.5px solid #ff0000 !important;
+            background-color: #0f172a !important;
+            color: #ef4444 !important;
+            border: 1.5px solid #ef4444 !important;
             border-radius: 4px !important;
             padding: 0.5rem 1rem !important;
             font-family: 'JetBrains Mono', monospace !important;
-            box-shadow: 0 0 8px rgba(255, 0, 0, 0.3) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2) !important;
             transition: all 0.2s ease-in-out !important;
         }
         
         div.stButton > button:hover {
-            background-color: #2a0000 !important;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
-            color: #ff4444 !important;
+            background-color: #ef4444 !important;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6) !important;
+            color: #ffffff !important;
             transform: translateY(-1px);
         }
 
