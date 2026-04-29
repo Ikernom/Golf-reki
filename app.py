@@ -83,11 +83,10 @@ with st.sidebar:
         status_color = "#ff4444"
         glow_color = "rgba(255,0,0,0.6)"
 
+    mfa_class = "mfa-status fault" if active_faults else "mfa-status"
     st.markdown(f"""
-        <div style="background-color: #000; border: 1px solid {status_color}; border-radius: 4px; padding: 8px; text-align: center; box-shadow: inset 0 0 15px {glow_color};">
-            <span style="color: {status_color}; font-family: 'Michroma', sans-serif; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">
-                {status_text}
-            </span>
+        <div class="{mfa_class}">
+            {status_text}
         </div>
     """, unsafe_allow_html=True)
     
@@ -114,8 +113,8 @@ with st.sidebar:
     # Odometer Section
     info = get_vehicle_info()
     current_km = int(info.get("current_mileage", 280000))
-    st.markdown("<p style='color:#666; font-size:0.7rem; margin-bottom:0;'>TOTAL ODOMETER</p>", unsafe_allow_html=True)
-    st.markdown(f"<h1 style='color:#ff0000; margin-top:0; font-size:1.8rem; text-shadow: 0 0 10px rgba(255,0,0,0.5);'>{current_km:,} KM</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='vdo-odometer-label'>TOTAL ODOMETER</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 class='vdo-odometer-value'>{current_km:,} KM</h1>", unsafe_allow_html=True)
     
     if st.button("⌨️ ACTUALIZAR KILOMETRAJE", width='stretch'):
         st.query_params["page"] = "⚙️ Configuración"
@@ -161,12 +160,12 @@ if menu == "🏠 Dashboard":
         if active_faults:
             for fault in active_faults:
                 with st.container():
-                    severity_color = "red" if fault["severity"] == "CRITICAL" else "orange"
+                    severity_class = "critical" if fault["severity"] == "CRITICAL" else "warning"
                     st.markdown(f"""
-                        <div style="border-left: 5px solid {severity_color}; background-color: #111; padding: 15px; border-radius: 5px; margin-bottom: 10px;">
-                            <h4 style="margin:0; color:{severity_color};">{fault['component']} - {fault['severity']}</h4>
-                            <p style="margin:5px 0; font-size:0.9rem;">{fault['description']}</p>
-                            <small style="color:#666;">Detectado el: {fault['detected_at']}</small>
+                        <div class="fault-card {severity_class}">
+                            <h4>{fault['component']} - {fault['severity']}</h4>
+                            <p>{fault['description']}</p>
+                            <small>Detectado el: {fault['detected_at']}</small>
                         </div>
                     """, unsafe_allow_html=True)
                     if st.button(f"Marcar {fault['component']} como reparado", key=f"fix_{fault['id']}"):
@@ -281,25 +280,14 @@ elif menu == "🔧 Mantenimiento":
             for entry in entries:
                 # Estilo LCD para el historial (Borde Rojo)
                 st.markdown(f"""
-                    <div style="position: relative; height: 0px; margin-bottom: 0px;">
-                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.65rem; font-weight: 400; border: 1.5px solid #ff0000; box-shadow: 0 0 10px rgba(255, 0, 0, 0.4); text-transform: uppercase; font-family: 'Michroma', sans-serif; letter-spacing: 1px;">
-                                <span style="color: #ff0000;">●</span> {entry['category']}
-                            </span>
+                    <div class="lcd-bubble-container">
+                        <div class="lcd-bubble">
+                            <span style="color: #ff0000;">●</span> {entry['category']}
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 with st.container():
-                    st.markdown("""
-                        <style>
-                        div[data-testid="stExpander"] {
-                            border: 2px solid #ff0000 !important;
-                            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.1) !important;
-                            background-color: #000 !important;
-                        }
-                        </style>
-                    """, unsafe_allow_html=True)
                     with st.expander(f"🛠️ {entry['description']}"):
                         c_inf, c_btn = st.columns([3, 1])
                         edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
@@ -357,28 +345,16 @@ elif menu == "🔧 Mantenimiento":
             for mod in f_mods:
                 prio_color = "#00ff00" if mod['priority'] == "Baja" else ("#ffff00" if mod['priority'] == "Media" else "#ff0000")
                 
-                # Burbuja Indigo - Posicionada más abajo para entrar en el recuadro
+                # Burbuja Indigo
                 st.markdown(f"""
-                    <div style="position: relative; height: 0px; margin-bottom: 0px;">
-                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.65rem; font-weight: 400; border: 1.5px solid #2e5bff; box-shadow: 0 0 10px rgba(46, 91, 255, 0.4); text-transform: uppercase; font-family: 'Michroma', sans-serif; letter-spacing: 1px;">
-                                <span style="color: #2e5bff;">●</span> {mod['category']}
-                            </span>
+                    <div class="lcd-bubble-container">
+                        <div class="lcd-bubble blue">
+                            <span style="color: #2e5bff;">●</span> {mod['category']}
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 with st.container():
-                    # CSS LCD para la Wishlist (Borde Azul)
-                    st.markdown(f"""
-                        <style>
-                        div[data-testid="stExpander"]:has(p:contains("{mod['description']}")) {{
-                            border: 2px solid #2e5bff !important;
-                            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.15) !important;
-                            background-color: #000 !important;
-                        }}
-                        </style>
-                    """, unsafe_allow_html=True)
                     
                     with st.expander(f"🚀 {mod['description']}"):
                         c_inf, c_btn = st.columns([3, 1])
@@ -709,51 +685,8 @@ elif menu == "⚙️ Configuración":
     st.title("Ajustes del Vehículo")
     info = get_vehicle_info()
     
-    # Estilo MK4 LCD Pro para el formulario
-    st.markdown("""
-        <style>
-        div[data-testid="stForm"] {
-            border: 2px solid #ff0000 !important;
-            background-color: #000000 !important;
-            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2) !important;
-            padding: 2.5rem !important;
-            border-radius: 4px !important;
-        }
-        
-        /* Labels con Estilo Indigo Glow */
-        div[data-testid="stForm"] label p {
-            color: #1c47ff !important;
-            text-shadow: 0 0 12px rgba(28, 71, 255, 0.8) !important;
-            font-family: 'Michroma', sans-serif !important;
-            font-weight: 800 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 2px !important;
-            font-size: 0.9rem !important;
-        }
-        
-        /* Inputs con Estilo Caja LCD */
-        div[data-testid="stForm"] input {
-            background-color: #000000 !important;
-            color: #1c47ff !important;
-            border: 1px solid #ff0000 !important;
-            border-radius: 4px !important;
-            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.3) !important;
-            text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
-            font-family: 'Share Tech Mono', monospace !important; /* LCD numérico: mantener mono */
-            font-weight: bold !important;
-            padding: 10px !important;
-        }
-        
-        /* Ajuste para inputs numéricos y selectores */
-        div[data-testid="stForm"] div[data-baseweb="input"], 
-        div[data-testid="stForm"] div[data-baseweb="select"] {
-            background-color: transparent !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
     with st.form("vehicle_info"):
-        st.markdown("<h2 style='color:#1c47ff; text-shadow: 0 0 20px rgba(28,71,255,0.9); margin-bottom:25px; letter-spacing:4px;'>📊 SISTEMA CENTRAL</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>📊 SISTEMA CENTRAL</h2>", unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         with col1:
@@ -765,7 +698,7 @@ elif menu == "⚙️ Configuración":
             last_oil_cfg = st.number_input("Kilometraje Último Cambio Aceite (km)", value=int(info.get("last_oil_change_km", 270000)), min_value=0)
             oil_interval = st.number_input("Intervalo Cambio Aceite (km)", value=int(info.get("oil_interval", 10000)), min_value=1000, step=500)
         
-        st.markdown("<br><h2 style='color:#1c47ff; text-shadow: 0 0 20px rgba(28,71,255,0.9); margin-bottom:25px; letter-spacing:4px;'>🤖 MECÁNICO IA</h2>", unsafe_allow_html=True)
+        st.markdown("<br><h2>🤖 MECÁNICO IA</h2>", unsafe_allow_html=True)
         gemini_key = st.text_input("Gemini API Key", value=info.get("gemini_api_key", ""), type="password")
 
         st.markdown("<br>", unsafe_allow_html=True)

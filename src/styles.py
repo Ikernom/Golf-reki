@@ -133,6 +133,122 @@ def apply_styles():
             line-height: 1.6 !important;
         }
 
+        /* --- UNIFICACIÓN UI: COMPONENTES GOLF MK4 --- */
+        
+        /* MFA Status Bar */
+        .mfa-status {
+            background-color: rgba(5, 5, 5, 0.8) !important;
+            border-radius: 6px !important;
+            padding: 10px !important;
+            text-align: center !important;
+            margin-bottom: 15px !important;
+            backdrop-filter: blur(5px) !important;
+            border: 1px solid rgba(255, 0, 0, 0.3) !important;
+            box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.1) !important;
+            color: #ff0000 !important;
+            font-family: 'Michroma', sans-serif !important;
+            font-weight: bold !important;
+            font-size: 0.75rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .mfa-status.fault {
+            border-color: #ff4444 !important;
+            box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.6) !important;
+            color: #ff4444 !important;
+        }
+
+        /* VDO Odometer */
+        .vdo-odometer-label {
+            color: #666666 !important;
+            font-size: 0.7rem !important;
+            margin-bottom: 0 !important;
+            font-family: 'Michroma', sans-serif !important;
+            letter-spacing: 1px !important;
+        }
+        
+        .vdo-odometer-value {
+            color: #ff0000 !important;
+            margin-top: 0 !important;
+            font-size: 1.8rem !important;
+            text-shadow: 0 0 15px rgba(255, 0, 0, 0.7) !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            letter-spacing: 2px !important;
+        }
+
+        /* Fault Cards (Estado de Salud) */
+        .fault-card {
+            background: rgba(10, 10, 15, 0.6) !important;
+            backdrop-filter: blur(10px) !important;
+            padding: 15px !important;
+            border-radius: 8px !important;
+            margin-bottom: 12px !important;
+            border: 1px solid rgba(255, 165, 0, 0.4) !important;
+            border-left: 5px solid orange !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+        }
+        
+        .fault-card.critical {
+            border-color: rgba(255, 0, 0, 0.5) !important;
+            border-left-color: #ff0000 !important;
+        }
+
+        .fault-card h4 {
+            margin: 0 !important;
+            font-family: 'Michroma', sans-serif !important;
+            font-size: 0.9rem !important;
+            color: inherit !important;
+            letter-spacing: 1px !important;
+            text-shadow: none !important;
+        }
+
+        .fault-card p {
+            margin: 8px 0 !important;
+            color: #e0e0e0 !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.85rem !important;
+            line-height: 1.5 !important;
+        }
+
+        .fault-card small {
+            color: #888888 !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-size: 0.7rem !important;
+        }
+
+        /* LCD Bubbles (Historial y Wishlist) */
+        .lcd-bubble-container {
+            position: relative; 
+            height: 0px; 
+            margin-bottom: 0px;
+        }
+
+        .lcd-bubble {
+            position: absolute; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            top: 16px; 
+            z-index: 99; 
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.95) !important;
+            color: #00d4ff !important;
+            padding: 4px 14px !important;
+            border-radius: 4px !important;
+            font-size: 0.65rem !important;
+            border: 1px solid #ff0000 !important;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3) !important;
+            text-transform: uppercase !important;
+            font-family: 'Michroma', sans-serif !important;
+            letter-spacing: 1px !important;
+        }
+        
+        .lcd-bubble.blue {
+            border-color: #2e5bff !important;
+            box-shadow: 0 0 10px rgba(46, 91, 255, 0.3) !important;
+        }
+
         /* Scrollbar Personalizada */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #050505; }
@@ -146,3 +262,4 @@ def apply_styles():
         #MainMenu, footer { visibility: hidden; }
         </style>
     """, unsafe_allow_html=True)
+
