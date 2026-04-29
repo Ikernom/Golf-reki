@@ -208,13 +208,34 @@ if menu == "🏠 Dashboard":
                 st.info(f"**{r['title']}**\n\nLímite: {r['due_mileage']} km")
         else:
             st.success("✅ Todo al día. ¡A disfrutar del TDI!")
-            st.write("No tienes tareas pendientes urgentes.")
-
-# --- MANTENIMIENTO ---
-# --- MANTENIMIENTO ---
+            st.w# --- MANTENIMIENTO ---
 elif menu == "🔧 Mantenimiento":
     st.title("Gestión de Mantenimiento")
     db_categories = list_categories()
+    
+    # Estilo LCD Global para Mantenimiento
+    st.markdown("""
+        <style>
+        /* Estilo para los inputs de registro/edición */
+        div.stForm input, div.stForm textarea {
+            background-color: #000000 !important;
+            color: #1c47ff !important;
+            border: 1px solid #ff0000 !important;
+            box-shadow: inset 0 0 10px rgba(28, 71, 255, 0.2) !important;
+            text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+        
+        /* Ajuste de labels en mantenimiento */
+        div.stForm label p {
+            color: #1c47ff !important;
+            text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            text-transform: uppercase !important;
+            font-size: 0.8rem !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
     tab_realized, tab_future = st.tabs(["🔧 Intervenciones Realizadas", "📅 Plan de Futuro (Wishlist)"])
     
@@ -223,6 +244,7 @@ elif menu == "🔧 Mantenimiento":
         with col_new:
             with st.expander("➕ Registrar nueva intervención", expanded=False):
                 with st.form("maintenance_form"):
+                    st.markdown("<h4 style='color:#1c47ff; text-shadow:0 0 10px rgba(28,71,255,0.7);'>NUEVO REGISTRO LCD</h4>", unsafe_allow_html=True)
                     col1, col2 = st.columns(2)
                     with col1:
                         date = st.date_input("Fecha")
@@ -233,13 +255,11 @@ elif menu == "🔧 Mantenimiento":
                         cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
                         notes = st.text_area("Notas adicionales")
 
-                    if st.form_submit_button("Guardar Registro"):
+                    if st.form_submit_button("💾 GUARDAR EN MEMORIA"):
                         if description:
                             add_entry(str(date), int(mileage), category, description, float(cost), notes)
-                            st.success("¡Registro guardado con éxito!")
+                            st.success("¡Registro guardado!")
                             st.rerun()
-                        else:
-                            st.error("La descripción es obligatoria.")
         
         with col_cat:
             with st.expander("📂 Gestionar Categorías"):
@@ -253,7 +273,6 @@ elif menu == "🔧 Mantenimiento":
         st.divider()
         st.subheader("📋 Registro Histórico")
         
-        # --- BARRA DE FILTROS Y ORDEN ---
         all_entries = list_entries()
         filter_categories = ["Todas"] + db_categories
         
@@ -270,7 +289,6 @@ elif menu == "🔧 Mantenimiento":
                 st.session_state.sort_desc = not st.session_state.sort_desc
                 st.rerun()
 
-        # Aplicar Filtro y Orden
         entries = all_entries
         if filter_cat != "Todas": entries = [e for e in all_entries if e["category"] == filter_cat]
         
@@ -284,49 +302,61 @@ elif menu == "🔧 Mantenimiento":
             st.info("No hay intervenciones registradas.")
         else:
             for entry in entries:
+                # Estilo LCD para el historial (Borde Rojo)
                 st.markdown(f"""
                     <div style="position: relative; height: 0px; margin-bottom: 0px;">
-                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #2e5bff; padding: 3px 14px; border-radius: 2px; font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; border: 2px solid #ff0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 8px rgba(46, 91, 255, 0.7);">
+                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; border: 1.5px solid #ff0000; box-shadow: 0 0 10px rgba(255, 0, 0, 0.4); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
                                 <span style="color: #ff0000;">●</span> {entry['category']}
                             </span>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
-                with st.expander(f"🛠️ {entry['description']}"):
-                    c_inf, c_btn = st.columns([3, 1])
-                    edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
-                    with c_inf:
-                        if not edit_mode:
-                            st.markdown(f"**📅 Fecha:** {entry['date']} | **🛣️ KM:** {entry['mileage_km']:,} | **💰 Coste:** {entry.get('cost_eur', 0.0)} €")
-                            if entry.get('notes'): st.markdown(f"**📝 Notas:** {entry['notes']}")
-                        else:
-                            with st.form(f"edit_f_{entry['id']}"):
-                                n_date = st.date_input("Fecha", value=datetime.strptime(entry['date'], '%Y-%m-%d'))
-                                n_km = st.number_input("KM", value=entry['mileage_km'])
-                                n_desc = st.text_input("Desc.", value=entry['description'])
-                                n_cat = st.selectbox("Cat.", db_categories, index=db_categories.index(entry['category']) if entry['category'] in db_categories else 0)
-                                n_cost = st.number_input("Coste", value=float(entry.get('cost_eur', 0.0)))
-                                n_notes = st.text_area("Notas", value=entry.get('notes', ''))
-                                if st.form_submit_button("💾 Guardar"):
-                                    update_entry(entry['id'], n_date.strftime('%Y-%m-%d'), n_km, n_desc, n_cat, n_cost, n_notes)
-                                    st.session_state[f"edit_{entry['id']}"] = False
+                
+                with st.container():
+                    st.markdown("""
+                        <style>
+                        div[data-testid="stExpander"] {
+                            border: 2px solid #ff0000 !important;
+                            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.1) !important;
+                            background-color: #000 !important;
+                        }
+                        </style>
+                    """, unsafe_allow_html=True)
+                    with st.expander(f"🛠️ {entry['description']}"):
+                        c_inf, c_btn = st.columns([3, 1])
+                        edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
+                        with c_inf:
+                            if not edit_mode:
+                                st.markdown(f"<span style='color:#1c47ff; text-shadow:0 0 5px rgba(28,71,255,0.5); font-weight:bold;'>📅 {entry['date']} | 🛣️ {entry['mileage_km']:,} KM | 💰 {entry.get('cost_eur', 0.0)} €</span>", unsafe_allow_html=True)
+                                if entry.get('notes'): st.markdown(f"*Notas:* {entry['notes']}")
+                            else:
+                                with st.form(f"edit_f_{entry['id']}"):
+                                    n_date = st.date_input("Fecha", value=datetime.strptime(entry['date'], '%Y-%m-%d'))
+                                    n_km = st.number_input("KM", value=entry['mileage_km'])
+                                    n_desc = st.text_input("Desc.", value=entry['description'])
+                                    n_cat = st.selectbox("Cat.", db_categories, index=db_categories.index(entry['category']) if entry['category'] in db_categories else 0)
+                                    n_cost = st.number_input("Coste", value=float(entry.get('cost_eur', 0.0)))
+                                    n_notes = st.text_area("Notas", value=entry.get('notes', ''))
+                                    if st.form_submit_button("💾 ACTUALIZAR"):
+                                        update_entry(entry['id'], n_date.strftime('%Y-%m-%d'), n_km, n_desc, n_cat, n_cost, n_notes)
+                                        st.session_state[f"edit_{entry['id']}"] = False
+                                        st.rerun()
+                        with c_btn:
+                            if not edit_mode:
+                                if st.button("✏️", key=f"ed_{entry['id']}", use_container_width=True):
+                                    st.session_state[f"edit_{entry['id']}"] = True
                                     st.rerun()
-                    with c_btn:
-                        if not edit_mode:
-                            if st.button("✏️", key=f"ed_{entry['id']}", use_container_width=True):
-                                st.session_state[f"edit_{entry['id']}"] = True
-                                st.rerun()
-                            if st.button("🗑️", key=f"dl_{entry['id']}", use_container_width=True):
-                                delete_entry(entry['id'])
-                                st.rerun()
+                                if st.button("🗑️", key=f"dl_{entry['id']}", use_container_width=True):
+                                    delete_entry(entry['id'])
+                                    st.rerun()
 
     with tab_future:
         st.subheader("📅 Plan de Futuro (Wishlist)")
-        st.markdown("Registra las próximas modificaciones y mejoras que tienes en mente.")
         
         with st.expander("🚀 Añadir nueva idea de modificación", expanded=False):
             with st.form("future_mod_form"):
+                st.markdown("<h4 style='color:#1c47ff; text-shadow:0 0 10px rgba(28,71,255,0.7);'>NUEVA MOD LCD</h4>", unsafe_allow_html=True)
                 col_f1, col_f2 = st.columns(2)
                 with col_f1:
                     f_desc = st.text_input("Descripción de la Mod")
@@ -336,26 +366,25 @@ elif menu == "🔧 Mantenimiento":
                     f_prio = st.select_slider("Prioridad", options=["Baja", "Media", "Alta"], value="Media")
                 
                 f_notes = st.text_area("Notas / Enlaces de piezas")
-                if st.form_submit_button("Añadir al Roadmap"):
+                if st.form_submit_button("➕ AÑADIR AL ROADMAP"):
                     if f_desc:
                         add_future_mod(f_desc, f_cost, f_cat, f_prio, f_notes)
-                        st.success("¡Idea añadida al plan de futuro!")
+                        st.success("¡Idea añadida!")
                         st.rerun()
         
         st.divider()
         f_mods = list_future_mods()
         if not f_mods:
-            st.info("Aún no tienes planes registrados. ¡Empieza a soñar!")
+            st.info("Aún no tienes planes registrados.")
         else:
             for mod in f_mods:
-                # Estilo Indigo (Blue) para el futuro
                 prio_color = "#00ff00" if mod['priority'] == "Baja" else ("#ffff00" if mod['priority'] == "Media" else "#ff0000")
                 
                 # Burbuja Indigo - Posicionada más abajo para entrar en el recuadro
                 st.markdown(f"""
                     <div style="position: relative; height: 0px; margin-bottom: 0px;">
                         <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; letter-spacing: 2px; border: 1.5px solid #2e5bff; box-shadow: 0 0 10px rgba(46, 91, 255, 0.5); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; border: 1.5px solid #2e5bff; box-shadow: 0 0 10px rgba(46, 91, 255, 0.4); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
                                 <span style="color: #2e5bff;">●</span> {mod['category']}
                             </span>
                         </div>
@@ -363,28 +392,24 @@ elif menu == "🔧 Mantenimiento":
                 """, unsafe_allow_html=True)
                 
                 with st.container():
-                    # CSS agresivo para forzar borde AZUL en esta sección
+                    # CSS LCD para la Wishlist (Borde Azul)
                     st.markdown(f"""
                         <style>
-                        div[data-testid="stExpander"] {{
+                        div[data-testid="stExpander"]:has(p:contains("{mod['description']}")) {{
                             border: 2px solid #2e5bff !important;
-                            box-shadow: 0 0 12px rgba(46, 91, 255, 0.2) !important;
-                        }}
-                        div[data-testid="stExpander"] summary p {{
-                            color: #00d4ff !important;
+                            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.15) !important;
+                            background-color: #000 !important;
                         }}
                         </style>
                     """, unsafe_allow_html=True)
                     
                     with st.expander(f"🚀 {mod['description']}"):
                         c_inf, c_btn = st.columns([3, 1])
-                        
                         f_edit_mode = st.session_state.get(f"f_edit_{mod['id']}", False)
-                        
                         with c_inf:
                             if not f_edit_mode:
-                                st.markdown(f"**💰 Coste Est.:** {mod['estimated_cost']} € | **⚡ Prioridad:** <span style='color:{prio_color};'>{mod['priority']}</span>", unsafe_allow_html=True)
-                                if mod.get('notes'): st.markdown(f"**📝 Notas:** {mod['notes']}")
+                                st.markdown(f"<span style='color:#1c47ff; text-shadow:0 0 5px rgba(28,71,255,0.5); font-weight:bold;'>💰 Est.: {mod['estimated_cost']} € | ⚡ Prioridad: <span style='color:{prio_color};'>{mod['priority']}</span></span>", unsafe_allow_html=True)
+                                if mod.get('notes'): st.markdown(f"*Notas:* {mod['notes']}")
                             else:
                                 with st.form(f"f_edit_form_{mod['id']}"):
                                     n_f_desc = st.text_input("Descripción", value=mod['description'])
@@ -392,16 +417,10 @@ elif menu == "🔧 Mantenimiento":
                                     n_f_cost = st.number_input("Coste Est. (€)", value=float(mod.get('estimated_cost', 0.0)))
                                     n_f_prio = st.select_slider("Prioridad", options=["Baja", "Media", "Alta"], value=mod['priority'])
                                     n_f_notes = st.text_area("Notas", value=mod.get('notes', ''))
-                                    
-                                    col_f_e1, col_f_e2 = st.columns(2)
-                                    if col_f_e1.form_submit_button("💾 Guardar"):
+                                    if st.form_submit_button("💾 ACTUALIZAR"):
                                         update_future_mod(mod['id'], n_f_desc, n_f_cost, n_f_cat, n_f_prio, n_f_notes)
                                         st.session_state[f"f_edit_{mod['id']}"] = False
                                         st.rerun()
-                                    if col_f_e2.form_submit_button("❌ Cancelar"):
-                                        st.session_state[f"f_edit_{mod['id']}"] = False
-                                        st.rerun()
-
                         with c_btn:
                             if not f_edit_mode:
                                 if st.button("✏️", key=f"f_ed_btn_{mod['id']}", use_container_width=True):
