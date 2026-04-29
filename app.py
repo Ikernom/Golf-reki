@@ -205,36 +205,51 @@ if menu == "🏠 Dashboard":
 elif menu == "🔧 Mantenimiento":
     st.title("Gestión de Mantenimiento")
     
-    with st.expander("➕ Registrar nueva intervención", expanded=False):
-        with st.form("maintenance_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                date = st.date_input("Fecha")
-                mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=280000)
-                category = st.selectbox("Categoría", ["Aceite", "Filtros", "Fluidos", "Distribución", "Frenos", "Suspensión", "Neumáticos", "Electrónica", "Otros"])
-            with col2:
-                description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")
-                cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
-                notes = st.text_area("Notas adicionales")
+    # Obtener categorías dinámicas
+    db_categories = list_categories()
+    
+    col_new, col_cat = st.columns([2, 1])
+    
+    with col_new:
+        with st.expander("➕ Registrar nueva intervención", expanded=False):
+            with st.form("maintenance_form"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    date = st.date_input("Fecha")
+                    mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=280000)
+                    category = st.selectbox("Categoría", db_categories)
+                with col2:
+                    description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")
+                    cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
+                    notes = st.text_area("Notas adicionales")
 
-            if st.form_submit_button("Guardar Registro"):
-                if description:
-                    add_entry(str(date), int(mileage), category, description, float(cost), notes)
-                    st.success("¡Registro guardado con éxito!")
+                if st.form_submit_button("Guardar Registro"):
+                    if description:
+                        add_entry(str(date), int(mileage), category, description, float(cost), notes)
+                        st.success("¡Registro guardado con éxito!")
+                        st.rerun()
+                    else:
+                        st.error("La descripción es obligatoria.")
+    
+    with col_cat:
+        with st.expander("📂 Gestionar Categorías"):
+            new_cat_name = st.text_input("Nueva Categoría")
+            if st.button("➕ Añadir Categoría", use_container_width=True):
+                if new_cat_name:
+                    add_category(new_cat_name)
+                    st.success(f"'{new_cat_name}' añadida")
                     st.rerun()
-                else:
-                    st.error("La descripción es obligatoria.")
     
     st.divider()
     st.subheader("📋 Registro Histórico")
     
     # --- BARRA DE FILTROS Y ORDEN ---
     all_entries = list_entries()
-    categories = ["Todas", "Aceite", "Filtros", "Fluidos", "Distribución", "Frenos", "Neumáticos", "Motor", "Otros"]
+    filter_categories = ["Todas"] + db_categories
     
     col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
     with col_f1:
-        filter_cat = st.selectbox("Filtrar por categoría:", categories)
+        filter_cat = st.selectbox("Filtrar por categoría:", filter_categories)
     with col_f2:
         sort_by = st.selectbox("Ordenar por:", ["Fecha", "Kilometraje", "Coste", "Nombre"])
     with col_f3:
@@ -267,9 +282,11 @@ elif menu == "🔧 Mantenimiento":
         st.info("No hay intervenciones que coincidan con los filtros.")
     else:
         for entry in entries:
-            # Título limpio (solo descripción)
+            # Título limpio (Solo descripción) y recuadro de ancho total
             with st.expander(f"🛠️ {entry['description']}"):
-                col_info, col_btns = st.columns([3, 1])
+                # Rejilla interna: [Información, Categoría (Burbuja), Botones]
+                # Usamos [2, 2, 1] para que la columna central coincida con los filtros de arriba
+                col_info, col_bubble, col_btns = st.columns([2, 2, 1])
                 
                 # Estado para saber si estamos editando esta entrada
                 edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
@@ -279,7 +296,6 @@ elif menu == "🔧 Mantenimiento":
                         # VISTA DE LECTURA
                         st.markdown(f"**📅 Fecha:** {entry['date']}")
                         st.markdown(f"**🛣️ Kilometraje:** {entry['mileage_km']:,} km")
-                        st.markdown(f"**📁 Categoría:** {entry['category']}")
                         st.markdown(f"**💰 Coste:** {entry.get('cost_eur', 0.0)} €")
                         if entry.get('notes'):
                             st.markdown(f"**📝 Notas:** {entry['notes']}")
@@ -290,12 +306,7 @@ elif menu == "🔧 Mantenimiento":
                             new_date = st.date_input("Fecha", value=curr_date)
                             new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
                             new_desc = st.text_input("Descripción", value=entry.get('description', ''))
-                            # Usar la lista actualizada de categorías aquí también
-                            edit_categories = ["Aceite", "Filtros", "Fluidos", "Frenos", "Neumáticos", "Motor", "Otros"]
-                            current_cat = entry.get('category', 'Otros')
-                            cat_idx = edit_categories.index(current_cat) if current_cat in edit_categories else len(edit_categories)-1
-                            
-                            new_cat = st.selectbox("Categoría", edit_categories, index=cat_idx)
+                            new_cat = st.selectbox("Categoría", db_categories, index=db_categories.index(entry.get('category', 'Otros')) if entry.get('category') in db_categories else 0)
                             new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
                             new_notes = st.text_area("Notas adicionales", value=entry.get('notes', ''))
                             
@@ -308,17 +319,35 @@ elif menu == "🔧 Mantenimiento":
                                 st.session_state[f"edit_{entry['id']}"] = False
                                 st.rerun()
 
-                with col_btns:
-                    st.markdown("<br>", unsafe_allow_html=True)
+                with col_bubble:
                     if not edit_mode:
+                        # La famosa burbuja azul, alineada con el campo de "Ordenar por"
+                        st.markdown(f"""
+                            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                                <span style="background-color: rgba(37, 99, 235, 0.2); 
+                                             color: #3b82f6; 
+                                             padding: 6px 16px; 
+                                             border-radius: 20px; 
+                                             font-size: 0.9rem; 
+                                             font-weight: bold;
+                                             border: 1px solid rgba(37, 99, 235, 0.4);
+                                             box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                                    📁 {entry['category']}
+                                </span>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                with col_btns:
+                    if not edit_mode:
+                        st.markdown("<br>", unsafe_allow_html=True)
                         if st.button("✏️ Editar", key=f"btn_edit_{entry['id']}", use_container_width=True):
                             st.session_state[f"edit_{entry['id']}"] = True
                             st.rerun()
-                    
-                    if st.button("🗑️ Eliminar", key=f"btn_del_{entry['id']}", use_container_width=True):
-                        delete_entry(entry['id'])
-                        st.warning("Entrada eliminada")
-                        st.rerun()
+                        
+                        if st.button("🗑️ Eliminar", key=f"btn_del_{entry['id']}", use_container_width=True):
+                            delete_entry(entry['id'])
+                            st.warning("Entrada eliminada")
+                            st.rerun()
 
 # --- ANÁLISIS DE LOGS ---
 elif menu == "📈 Análisis de Logs":
