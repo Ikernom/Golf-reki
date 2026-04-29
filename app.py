@@ -243,7 +243,7 @@ elif menu == "🔧 Mantenimiento":
                         new_desc = st.text_input("Descripción", value=entry.get('description', ''))
                         new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
                                              index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry.get('category', 'Otros')))
-                        new_cost = st.number_input("Coste (€)", value=float(entry.get('cost', 0.0)))
+                        new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
                         
                         if st.form_submit_button("💾 Guardar Cambios"):
                             update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost)

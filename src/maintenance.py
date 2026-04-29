@@ -153,7 +153,7 @@ def update_entry(entry_id: int, date: str, mileage_km: int, description: str, ca
     with get_connection() as conn:
         conn.execute(
             """UPDATE maintenance 
-               SET date = ?, mileage_km = ?, description = ?, category = ?, cost = ?
+               SET date = ?, mileage_km = ?, description = ?, category = ?, cost_eur = ?
                WHERE id = ?""",
             (date, mileage_km, description, category, cost, entry_id)
         )
