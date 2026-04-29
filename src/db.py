@@ -55,6 +55,18 @@ def init_db() -> None:
                 name TEXT UNIQUE NOT NULL
             )
         ''')
+
+        # Tabla de futuras modificaciones (Wishlist)
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS future_mods (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                estimated_cost REAL,
+                category TEXT,
+                priority TEXT DEFAULT 'Media',
+                notes TEXT
+            )
+        ''')
         
         # Insertar por defecto si está vacía
         cursor = conn.execute("SELECT COUNT(*) as count FROM categories")

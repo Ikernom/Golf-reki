@@ -82,10 +82,10 @@ def apply_styles():
             font-weight: 700 !important;
         }
 
-        /* Titles - MK4 Electric Blue Display */
+        /* Titles - MK4 Deep Indigo Display */
         h1, h2, h3, .stSubheader {
-            color: #00aaff !important;
-            text-shadow: 0 0 10px rgba(0, 170, 255, 0.8), 0 0 20px rgba(0, 170, 255, 0.4) !important;
+            color: #1c47ff !important;
+            text-shadow: 0 0 12px rgba(28, 71, 255, 0.7), 0 0 25px rgba(28, 71, 255, 0.3) !important;
             font-family: 'JetBrains Mono', monospace !important;
             text-transform: uppercase !important;
             letter-spacing: 3px !important;
@@ -102,10 +102,10 @@ def apply_styles():
         }
         
         [data-testid="stExpander"] summary p {
-            color: #00d4ff !important;
+            color: #2e5bff !important;
             font-family: 'JetBrains Mono', monospace !important;
             font-weight: 700 !important;
-            text-shadow: 0 0 8px rgba(0, 212, 255, 0.7) !important;
+            text-shadow: 0 0 10px rgba(46, 91, 255, 0.6) !important;
             font-size: 1.1rem !important;
         }
 

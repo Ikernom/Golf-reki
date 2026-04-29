@@ -1,61 +1,82 @@
-# ALH Care
+# 🏎️ Golf-reki ALH Care 🛠️
 
-App para llevar al dia el mantenimiento de un Golf IV 1.9 TDI ALH, registrar costes y analizar logs CSV de funcionamiento.
+**Golf-reki ALH Care** es una plataforma integral de gestión y diagnóstico diseñada específicamente para entusiastas del Volkswagen Golf MK4 (motor 1.9 TDI ALH). Combina la potencia de la Inteligencia Artificial con una interfaz inmersiva inspirada en el icónico cuadro de instrumentos *Indigo & Red*.
 
-## Funcionalidades
+![Estilo MK4](https://img.shields.io/badge/UI-Retro_MK4_Indigo-blue?style=for-the-badge&logo=volkswagen)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
 
-- Registro de mantenimientos (fecha, km, categoria, descripcion, coste, notas).
-- Historial completo con grafica de coste mensual.
-- Subida de logs CSV y analisis basico (MAF, MAP, temperatura, RPM).
-- Alertas automaticas de condiciones anormales.
-- Base para crecer con recordatorios, comparativas y OBD-II.
+---
 
-## Requisitos
+## 🌟 Características Principales
 
-- Python 3.11+ (probado con 3.14)
+### 🧠 Diagnóstico Inteligente (Mecánico Virtual)
+- **Análisis de Logs VCDS**: Sube tus archivos `.csv` de telemetría y deja que **Gemini AI** analice el estado del turbo, el caudalímetro (MAF) y la inyección.
+- **Detección Automática de Fallos**: El sistema identifica condiciones críticas y sugiere reparaciones.
+- **Chat Interactivo**: Pregunta directamente a la IA sobre el comportamiento de tu motor (ej: "¿Por qué entra en limp mode?").
 
-## Instalacion con entorno virtual
+### 🔧 Gestión de Mantenimiento Avanzada
+- **Registro de Intervenciones**: Control total sobre reparaciones, mantenimiento preventivo y costes.
+- **Categorización Dinámica**: Crea tus propias categorías (Fluidos, Frenos, Mod, etc.) directamente desde la app.
+- **Filtros y Ordenación**: Organiza tus registros por fecha, kilometraje o inversión.
 
+### 📅 Plan de Futuro (Roadmap/Wishlist)
+- **Pestaña de Proyectos**: Planifica tus futuras modificaciones y mejoras.
+- **Priorización**: Clasifica tus ideas por urgencia (Alta, Media, Baja) y estima los costes para gestionar tu presupuesto.
+
+### 📊 Análisis de Inversión
+- **Gráficos Interactivos**: Visualiza el gasto acumulado en el tiempo con puntos interactivos para cada modificación.
+- **Métricas del Dashboard**: Kilometraje actual, estado del aceite y total invertido de un solo vistazo.
+
+---
+
+## 🎨 Interfaz Inmersiva "Indigo & Red"
+La aplicación ha sido rediseñada para replicar la atmósfera nocturna del **Golf MK4**:
+- **Títulos Azul Índigo**: Resplandor neón idéntico a los relojes del cuadro.
+- **Bordes Rojo Aguja**: Recuadros y alertas inspirados en las agujas y testigos del salpicadero.
+- **Modo Oscuro Absoluto**: Optimizado para una visualización sin distracciones.
+
+---
+
+## 🛠️ Instalación y Configuración
+
+### 1. Clonar y preparar entorno
 ```bash
+# Clonar el repositorio
+git clone <URL_DEL_REPO>
+cd Golf-reki
+
+# Crear y activar entorno virtual
 python3 -m venv .venv
 source .venv/bin/activate
-pip install --upgrade pip
+
+# Instalar dependencias
 pip install -r requirements.txt
 ```
 
-## Ejecucion
+### 2. Configuración de IA
+Para usar el Mecánico Virtual, necesitas una API Key de Google Gemini (gratuita):
+1. Consíguela en [Google AI Studio](https://aistudio.google.com/).
+2. Introdúcela en la sección de **⚙️ Configuración** dentro de la app.
+
+---
+
+## 🚀 Ejecución
 
 ```bash
-source .venv/bin/activate
 streamlit run app.py
 ```
+La aplicación se abrirá automáticamente en tu navegador (por defecto en `http://localhost:8501`).
 
-Se abrira en el navegador (normalmente `http://localhost:8501`).
+---
 
-## Formato recomendado de logs CSV
+## 📁 Estructura del Proyecto
+- `app.py`: Núcleo de la interfaz y lógica de navegación.
+- `src/maintenance.py`: Gestión de base de datos y CRUD de mantenimiento/roadmap.
+- `src/ai_assistant.py`: Integración con Gemini para análisis de logs.
+- `src/styles.py`: Motor de estilos CSS con temática MK4.
+- `src/db.py`: Esquema de la base de datos SQLite3.
 
-El analizador espera estas columnas (minusculas, separadas por coma):
+---
 
-- `rpm`
-- `maf_actual`
-- `maf_requested`
-- `map_actual`
-- `coolant_temp`
-
-## Git
-
-Inicializar repo:
-
-```bash
-git init
-git add .
-git commit -m "Initial ALH Care app"
-```
-
-Subir a GitHub (ejemplo):
-
-```bash
-git remote add origin <URL_DEL_REPO>
-git branch -M main
-git push -u origin main
-```
+**Desarrollado para amantes del TDI • ALH Care v3.5 • Indigo Edition** 🏎️💨

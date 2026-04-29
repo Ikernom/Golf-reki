@@ -29,7 +29,10 @@ from src.maintenance import (
     delete_entry,
     update_entry,
     list_categories,
-    add_category
+    add_category,
+    list_future_mods,
+    add_future_mod,
+    delete_future_mod
 )
 from src.styles import apply_styles
 
@@ -124,9 +127,6 @@ with st.sidebar:
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
-    # Placeholder para la imagen del salpicadero
-    st.image("dashboard_final.jpg", use_container_width=True)
-
     st.title("Sistema de Diagnosis")
     
     # Header metrics
@@ -178,15 +178,23 @@ if menu == "🏠 Dashboard":
         st.subheader("📊 Histórico de Inversión")
         if not df_entries.empty:
             df_entries["date"] = pd.to_datetime(df_entries["date"])
+            df_plot = df_entries.sort_values("date")
             fig = px.area(
-                df_entries.sort_values("date"), 
+                df_plot, 
                 x="date", 
                 y="cost_eur",
-                title="Gasto acumulado en el tiempo",
+                title=f"Inversión Total: {total_cost:,.2f} €",
                 line_shape="spline",
-                color_discrete_sequence=["#2563eb"]
+                color_discrete_sequence=["#1c47ff"],
+                markers=True,
+                hover_data={"description": True, "cost_eur": ":.2f €", "date": "|%d %b, %Y"}
             )
-            fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+            fig.update_traces(marker=dict(size=8, color="#ff0000", line=dict(width=1, color="#fff")))
+            fig.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)", 
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="JetBrains Mono, monospace", size=12, color="#00aaff")
+            )
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("No hay datos suficientes para mostrar gráficas.")
@@ -202,158 +210,177 @@ if menu == "🏠 Dashboard":
             st.write("No tienes tareas pendientes urgentes.")
 
 # --- MANTENIMIENTO ---
+# --- MANTENIMIENTO ---
 elif menu == "🔧 Mantenimiento":
     st.title("Gestión de Mantenimiento")
-    
-    # Obtener categorías dinámicas
     db_categories = list_categories()
     
-    col_new, col_cat = st.columns([2, 1])
+    tab_realized, tab_future = st.tabs(["🔧 Intervenciones Realizadas", "📅 Plan de Futuro (Wishlist)"])
     
-    with col_new:
-        with st.expander("➕ Registrar nueva intervención", expanded=False):
-            with st.form("maintenance_form"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    date = st.date_input("Fecha")
-                    mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=280000)
-                    category = st.selectbox("Categoría", db_categories)
-                with col2:
-                    description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")
-                    cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
-                    notes = st.text_area("Notas adicionales")
+    with tab_realized:
+        col_new, col_cat = st.columns([2, 1])
+        with col_new:
+            with st.expander("➕ Registrar nueva intervención", expanded=False):
+                with st.form("maintenance_form"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        date = st.date_input("Fecha")
+                        mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=280000)
+                        category = st.selectbox("Categoría", db_categories)
+                    with col2:
+                        description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")
+                        cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
+                        notes = st.text_area("Notas adicionales")
 
-                if st.form_submit_button("Guardar Registro"):
-                    if description:
-                        add_entry(str(date), int(mileage), category, description, float(cost), notes)
-                        st.success("¡Registro guardado con éxito!")
-                        st.rerun()
-                    else:
-                        st.error("La descripción es obligatoria.")
-    
-    with col_cat:
-        with st.expander("📂 Gestionar Categorías"):
-            new_cat_name = st.text_input("Nueva Categoría")
-            if st.button("➕ Añadir Categoría", use_container_width=True):
-                if new_cat_name:
-                    add_category(new_cat_name)
-                    st.success(f"'{new_cat_name}' añadida")
-                    st.rerun()
-    
-    st.divider()
-    st.subheader("📋 Registro Histórico")
-    
-    # --- BARRA DE FILTROS Y ORDEN ---
-    all_entries = list_entries()
-    filter_categories = ["Todas"] + db_categories
-    
-    col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
-    with col_f1:
-        filter_cat = st.selectbox("Filtrar por categoría:", filter_categories)
-    with col_f2:
-        sort_by = st.selectbox("Ordenar por:", ["Fecha", "Kilometraje", "Coste", "Nombre"])
-    with col_f3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        # Inicializar dirección en session_state si no existe
-        if "sort_desc" not in st.session_state: st.session_state.sort_desc = True
+                    if st.form_submit_button("Guardar Registro"):
+                        if description:
+                            add_entry(str(date), int(mileage), category, description, float(cost), notes)
+                            st.success("¡Registro guardado con éxito!")
+                            st.rerun()
+                        else:
+                            st.error("La descripción es obligatoria.")
         
-        icon = "⬇️ Desc." if st.session_state.sort_desc else "⬆️ Asc."
-        if st.button(icon, use_container_width=True, help="Cambiar dirección de orden"):
-            st.session_state.sort_desc = not st.session_state.sort_desc
-            st.rerun()
+        with col_cat:
+            with st.expander("📂 Gestionar Categorías"):
+                new_cat_name = st.text_input("Nueva Categoría")
+                if st.button("➕ Añadir Categoría", use_container_width=True):
+                    if new_cat_name:
+                        add_category(new_cat_name)
+                        st.success(f"'{new_cat_name}' añadida")
+                        st.rerun()
+        
+        st.divider()
+        st.subheader("📋 Registro Histórico")
+        
+        # --- BARRA DE FILTROS Y ORDEN ---
+        all_entries = list_entries()
+        filter_categories = ["Todas"] + db_categories
+        
+        col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
+        with col_f1:
+            filter_cat = st.selectbox("Filtrar por categoría:", filter_categories)
+        with col_f2:
+            sort_by = st.selectbox("Ordenar por:", ["Fecha", "Kilometraje", "Coste", "Nombre"])
+        with col_f3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if "sort_desc" not in st.session_state: st.session_state.sort_desc = True
+            icon = "⬇️ Desc." if st.session_state.sort_desc else "⬆️ Asc."
+            if st.button(icon, use_container_width=True):
+                st.session_state.sort_desc = not st.session_state.sort_desc
+                st.rerun()
 
-    # Aplicar Filtro
-    entries = all_entries
-    if filter_cat != "Todas":
-        entries = [e for e in all_entries if e["category"] == filter_cat]
+        # Aplicar Filtro y Orden
+        entries = all_entries
+        if filter_cat != "Todas": entries = [e for e in all_entries if e["category"] == filter_cat]
+        
+        is_desc = st.session_state.sort_desc
+        if sort_by == "Fecha": entries = sorted(entries, key=lambda x: x["date"], reverse=is_desc)
+        elif sort_by == "Kilometraje": entries = sorted(entries, key=lambda x: x["mileage_km"], reverse=is_desc)
+        elif sort_by == "Coste": entries = sorted(entries, key=lambda x: x.get("cost_eur", 0.0), reverse=is_desc)
+        elif sort_by == "Nombre": entries = sorted(entries, key=lambda x: x["description"].lower(), reverse=is_desc)
 
-    # Aplicar Orden Dinámico
-    is_desc = st.session_state.sort_desc
-    if sort_by == "Fecha":
-        entries = sorted(entries, key=lambda x: x["date"], reverse=is_desc)
-    elif sort_by == "Kilometraje":
-        entries = sorted(entries, key=lambda x: x["mileage_km"], reverse=is_desc)
-    elif sort_by == "Coste":
-        entries = sorted(entries, key=lambda x: x.get("cost_eur", 0.0), reverse=is_desc)
-    elif sort_by == "Nombre":
-        entries = sorted(entries, key=lambda x: x["description"].lower(), reverse=is_desc)
-
-    if not entries:
-        st.info("No hay intervenciones que coincidan con los filtros.")
-    else:
-        for entry in entries:
-            # Contenedor relativo con estilo MK4 Real (Electric Blue & Fire Red)
-            st.markdown(f"""
-                <div style="position: relative; height: 0px; margin-bottom: 0px;">
-                    <div style="position: absolute; 
-                                left: 50%; 
-                                transform: translateX(-50%); 
-                                top: 12px; 
-                                z-index: 99; 
-                                pointer-events: none;">
-                        <span style="background: rgba(0, 0, 0, 0.9); 
-                                     color: #00d4ff; 
-                                     padding: 3px 14px; 
-                                     border-radius: 2px; 
-                                     font-size: 0.75rem; 
-                                     font-weight: 800;
-                                     letter-spacing: 2px;
-                                     border: 2px solid #ff0000;
-                                     box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
-                                     text-transform: uppercase;
-                                     font-family: 'JetBrains Mono', monospace;
-                                     text-shadow: 0 0 5px rgba(0, 212, 255, 0.8);">
-                            <span style="color: #ff0000;">●</span> {entry['category']}
-                        </span>
+        if not entries:
+            st.info("No hay intervenciones registradas.")
+        else:
+            for entry in entries:
+                st.markdown(f"""
+                    <div style="position: relative; height: 0px; margin-bottom: 0px;">
+                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 99; pointer-events: none;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #2e5bff; padding: 3px 14px; border-radius: 2px; font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; border: 2px solid #ff0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 8px rgba(46, 91, 255, 0.7);">
+                                <span style="color: #ff0000;">●</span> {entry['category']}
+                            </span>
+                        </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Título limpio y ancho total
-            with st.expander(f"🛠️ {entry['description']}"):
-                col_info, col_btns = st.columns([3, 1])
-                
-                # Estado para saber si estamos editando esta entrada
-                edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
-                
-                with col_info:
-                    if not edit_mode:
-                        # VISTA DE LECTURA
-                        st.markdown(f"**📅 Fecha:** {entry['date']}")
-                        st.markdown(f"**🛣️ Kilometraje:** {entry['mileage_km']:,} km")
-                        st.markdown(f"**💰 Coste:** {entry.get('cost_eur', 0.0)} €")
-                        if entry.get('notes'):
-                            st.markdown(f"**📝 Notas:** {entry['notes']}")
-                    else:
-                        # VISTA DE EDICIÓN (Formulario)
-                        with st.form(f"edit_form_{entry['id']}"):
-                            curr_date = datetime.strptime(entry['date'], '%Y-%m-%d')
-                            new_date = st.date_input("Fecha", value=curr_date)
-                            new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
-                            new_desc = st.text_input("Descripción", value=entry.get('description', ''))
-                            new_cat = st.selectbox("Categoría", db_categories, index=db_categories.index(entry.get('category', 'Otros')) if entry.get('category') in db_categories else 0)
-                            new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
-                            new_notes = st.text_area("Notas adicionales", value=entry.get('notes', ''))
-                            
-                            col_f1_e, col_f2_e = st.columns(2)
-                            if col_f1_e.form_submit_button("💾 Guardar"):
-                                update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost, new_notes)
-                                st.session_state[f"edit_{entry['id']}"] = False
+                """, unsafe_allow_html=True)
+                with st.expander(f"🛠️ {entry['description']}"):
+                    c_inf, c_btn = st.columns([3, 1])
+                    edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
+                    with c_inf:
+                        if not edit_mode:
+                            st.markdown(f"**📅 Fecha:** {entry['date']} | **🛣️ KM:** {entry['mileage_km']:,} | **💰 Coste:** {entry.get('cost_eur', 0.0)} €")
+                            if entry.get('notes'): st.markdown(f"**📝 Notas:** {entry['notes']}")
+                        else:
+                            with st.form(f"edit_f_{entry['id']}"):
+                                n_date = st.date_input("Fecha", value=datetime.strptime(entry['date'], '%Y-%m-%d'))
+                                n_km = st.number_input("KM", value=entry['mileage_km'])
+                                n_desc = st.text_input("Desc.", value=entry['description'])
+                                n_cat = st.selectbox("Cat.", db_categories, index=db_categories.index(entry['category']) if entry['category'] in db_categories else 0)
+                                n_cost = st.number_input("Coste", value=float(entry.get('cost_eur', 0.0)))
+                                n_notes = st.text_area("Notas", value=entry.get('notes', ''))
+                                if st.form_submit_button("💾 Guardar"):
+                                    update_entry(entry['id'], n_date.strftime('%Y-%m-%d'), n_km, n_desc, n_cat, n_cost, n_notes)
+                                    st.session_state[f"edit_{entry['id']}"] = False
+                                    st.rerun()
+                    with c_btn:
+                        if not edit_mode:
+                            if st.button("✏️", key=f"ed_{entry['id']}", use_container_width=True):
+                                st.session_state[f"edit_{entry['id']}"] = True
                                 st.rerun()
-                            if col_f2_e.form_submit_button("❌ Cancelar"):
-                                st.session_state[f"edit_{entry['id']}"] = False
+                            if st.button("🗑️", key=f"dl_{entry['id']}", use_container_width=True):
+                                delete_entry(entry['id'])
                                 st.rerun()
 
-                with col_btns:
-                    if not edit_mode:
-                        if st.button("✏️ Editar", key=f"btn_edit_{entry['id']}", use_container_width=True):
-                            st.session_state[f"edit_{entry['id']}"] = True
-                            st.rerun()
-                        
-                        if st.button("🗑️ Eliminar", key=f"btn_del_{entry['id']}", use_container_width=True):
-                            delete_entry(entry['id'])
-                            st.warning("Entrada eliminada")
-                            st.rerun()
+    with tab_future:
+        st.subheader("📅 Plan de Futuro (Wishlist)")
+        st.markdown("Registra las próximas modificaciones y mejoras que tienes en mente.")
+        
+        with st.expander("🚀 Añadir nueva idea de modificación", expanded=False):
+            with st.form("future_mod_form"):
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    f_desc = st.text_input("Descripción de la Mod")
+                    f_cat = st.selectbox("Categoría", db_categories, key="future_cat")
+                with col_f2:
+                    f_cost = st.number_input("Coste Estimado (EUR)", min_value=0.0, step=10.0)
+                    f_prio = st.select_slider("Prioridad", options=["Baja", "Media", "Alta"], value="Media")
+                
+                f_notes = st.text_area("Notas / Enlaces de piezas")
+                if st.form_submit_button("Añadir al Roadmap"):
+                    if f_desc:
+                        add_future_mod(f_desc, f_cost, f_cat, f_prio, f_notes)
+                        st.success("¡Idea añadida al plan de futuro!")
+                        st.rerun()
+        
+        st.divider()
+        f_mods = list_future_mods()
+        if not f_mods:
+            st.info("Aún no tienes planes registrados. ¡Empieza a soñar!")
+        else:
+            for mod in f_mods:
+                # Estilo Indigo (Blue) para el futuro
+                prio_color = "#00ff00" if mod['priority'] == "Baja" else ("#ffff00" if mod['priority'] == "Media" else "#ff0000")
+                
+                # Burbuja Indigo
+                st.markdown(f"""
+                    <div style="position: relative; height: 0px; margin-bottom: 0px;">
+                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 99; pointer-events: none;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 3px 14px; border-radius: 2px; font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; border: 2px solid #2e5bff; box-shadow: 0 0 15px rgba(46, 91, 255, 0.4); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
+                                <span style="color: #2e5bff;">●</span> {mod['category']}
+                            </span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                with st.container():
+                    # Usamos un CSS específico para que los expanders de futuro sean AZULES
+                    st.markdown(f"""
+                        <style>
+                        div.stExpander:has(p:contains("{mod['description']}")) {{
+                            border: 2px solid #2e5bff !important;
+                            box-shadow: 0 0 10px rgba(46, 91, 255, 0.2) !important;
+                        }}
+                        </style>
+                    """, unsafe_allow_html=True)
+                    
+                    with st.expander(f"🚀 {mod['description']}"):
+                        c_inf, c_btn = st.columns([3, 1])
+                        with c_inf:
+                            st.markdown(f"**💰 Coste Est.:** {mod['estimated_cost']} € | **⚡ Prioridad:** <span style='color:{prio_color};'>{mod['priority']}</span>", unsafe_allow_html=True)
+                            if mod.get('notes'): st.markdown(f"**📝 Notas:** {mod['notes']}")
+                        with c_btn:
+                            if st.button("🗑️", key=f"f_dl_{mod['id']}", use_container_width=True):
+                                delete_future_mod(mod['id'])
+                                st.rerun()
 
 # --- ANÁLISIS DE LOGS ---
 elif menu == "📈 Análisis de Logs":
@@ -574,20 +601,36 @@ elif menu == "⚙️ Configuración":
     st.title("Ajustes del Vehículo")
     info = get_vehicle_info()
     
+    # Contenedor con borde rojo (estilo MK4)
+    st.markdown("""
+        <style>
+        div[data-testid="stForm"] {
+            border: 2px solid #ff0000 !important;
+            background-color: #000000 !important;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.2) !important;
+            border-radius: 4px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     with st.form("vehicle_info"):
-        st.subheader("Información del Golf")
-        vin = st.text_input("Bastidor (VIN)", value=info.get("vin", ""))
-        engine_code = st.text_input("Código Motor", value=info.get("engine_code", "ALH"))
-        plate = st.text_input("Matrícula", value=info.get("plate", ""))
-        current_mileage_cfg = st.number_input("Kilometraje Actual (km)", value=int(info.get("current_mileage", 280000)), min_value=0)
-        last_oil_cfg = st.number_input("Kilometraje Último Cambio Aceite (km)", value=int(info.get("last_oil_change_km", 270000)), min_value=0)
-        oil_interval = st.number_input("Intervalo Cambio Aceite (km)", value=int(info.get("oil_interval", 10000)), min_value=1000, step=500)
+        st.markdown("<h3 style='color:#00aaff; text-shadow: 0 0 10px rgba(0,170,255,0.7);'>📋 FICHA TÉCNICA</h3>", unsafe_allow_html=True)
         
-        st.markdown("---")
-        st.subheader("IA y Conectividad")
+        col1, col2 = st.columns(2)
+        with col1:
+            vin = st.text_input("Bastidor (VIN)", value=info.get("vin", ""))
+            engine_code = st.text_input("Código Motor", value=info.get("engine_code", "ALH"))
+            plate = st.text_input("Matrícula", value=info.get("plate", ""))
+        with col2:
+            current_mileage_cfg = st.number_input("Kilometraje Actual (km)", value=int(info.get("current_mileage", 280000)), min_value=0)
+            last_oil_cfg = st.number_input("Kilometraje Último Cambio Aceite (km)", value=int(info.get("last_oil_change_km", 270000)), min_value=0)
+            oil_interval = st.number_input("Intervalo Cambio Aceite (km)", value=int(info.get("oil_interval", 10000)), min_value=1000, step=500)
+        
+        st.markdown("<br><h3 style='color:#00aaff; text-shadow: 0 0 10px rgba(0,170,255,0.7);'>🤖 MECÁNICO IA</h3>", unsafe_allow_html=True)
         gemini_key = st.text_input("Gemini API Key", value=info.get("gemini_api_key", ""), type="password", help="Obtenla en aistudio.google.com")
 
-        if st.form_submit_button("Actualizar Ficha"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.form_submit_button("💾 ACTUALIZAR SISTEMA"):
             update_vehicle_info("vin", vin)
             update_vehicle_info("engine_code", engine_code)
             update_vehicle_info("plate", plate)
@@ -595,5 +638,5 @@ elif menu == "⚙️ Configuración":
             update_vehicle_info("last_oil_change_km", str(last_oil_cfg))
             update_vehicle_info("oil_interval", str(oil_interval))
             update_vehicle_info("gemini_api_key", gemini_key)
-            st.success("Ficha técnica actualizada.")
+            st.success("Configuración del sistema actualizada.")
             st.rerun()

@@ -146,3 +146,25 @@ def add_category(name: str):
             conn.commit()
         except:
             pass # Ya existe
+
+
+def list_future_mods():
+    with get_connection() as conn:
+        cursor = conn.execute("SELECT * FROM future_mods ORDER BY priority DESC")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def add_future_mod(description, estimated_cost, category, priority, notes=""):
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO future_mods (description, estimated_cost, category, priority, notes)
+               VALUES (?, ?, ?, ?, ?)""",
+            (description, estimated_cost, category, priority, notes)
+        )
+        conn.commit()
+
+
+def delete_future_mod(mod_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM future_mods WHERE id = ?", (mod_id,))
+        conn.commit()
