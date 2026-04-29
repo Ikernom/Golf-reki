@@ -139,8 +139,8 @@ def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
     return figures
 
 
-def ai_chat_response(raw_csv_text: str, user_query: str) -> str:
-    """Chat con la IA sobre el log."""
+def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -> str:
+    """Chat con la IA sobre el log con memoria de conversación."""
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
 
@@ -152,16 +152,26 @@ def ai_chat_response(raw_csv_text: str, user_query: str) -> str:
         model = genai.GenerativeModel('gemini-flash-latest')
 
         vehicle = f"Golf IV 1.9 TDI ALH, {info.get('current_mileage', '280000')} km"
+        
+        # Construir el contexto de la conversación
+        history_text = ""
+        if history:
+            for msg in history[-10:]: # Enviamos los últimos 10 mensajes para no saturar
+                role = "Mecánico" if msg["role"] == "assistant" else "Usuario"
+                history_text += f"{role}: {msg['content']}\n"
 
         prompt = f"""Eres un mecánico experto en motores VW TDI ALH.
 Vehículo: {vehicle}
 
-Log VCDS (primeras líneas):
+Log VCDS (fragmento):
 {raw_csv_text[:5000]}
 
-Pregunta: {user_query}
+Historial de conversación:
+{history_text}
 
-Responde en español, de forma profesional pero cercana."""
+Usuario (pregunta actual): {user_query}
+
+Responde en español, de forma profesional pero cercana. Mantén la continuidad de la charla anterior."""
 
         response = model.generate_content(prompt)
         return response.text

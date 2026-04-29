@@ -262,7 +262,7 @@ elif menu == "📈 Análisis de Logs":
             
             with st.chat_message("assistant", avatar="🏎️"):
                 with st.spinner("Analizando..."):
-                    response = ai_chat_response(raw_csv, chat_prompt)
+                    response = ai_chat_response(raw_csv, chat_prompt, st.session_state.ai_chat_history)
                     st.write(response)
             st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
 
