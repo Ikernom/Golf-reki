@@ -117,7 +117,7 @@ with st.sidebar:
     st.markdown("<p style='color:#666; font-size:0.7rem; margin-bottom:0;'>TOTAL ODOMETER</p>", unsafe_allow_html=True)
     st.markdown(f"<h1 style='color:#ff0000; margin-top:0; font-size:1.8rem; text-shadow: 0 0 10px rgba(255,0,0,0.5);'>{current_km:,} KM</h1>", unsafe_allow_html=True)
     
-    if st.button("⌨️ ACTUALIZAR KILOMETRAJE", use_container_width='stretch'):
+    if st.button("⌨️ ACTUALIZAR KILOMETRAJE", width='stretch'):
         st.query_params["page"] = "⚙️ Configuración"
         st.rerun()
 
@@ -196,7 +196,7 @@ if menu == "🏠 Dashboard":
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="JetBrains Mono, monospace", size=12, color="#00aaff")
             )
-            st.plotly_chart(fig, use_container_width='stretch')
+            st.plotly_chart(fig, width='stretch')
         else:
             st.info("No hay datos suficientes para mostrar gráficas.")
 
@@ -241,7 +241,7 @@ elif menu == "🔧 Mantenimiento":
         with col_cat:
             with st.expander("📂 Gestionar Categorías"):
                 new_cat_name = st.text_input("Nueva Categoría")
-                if st.button("➕ Añadir Categoría", use_container_width='stretch'):
+                if st.button("➕ Añadir Categoría", width='stretch'):
                     if new_cat_name:
                         add_category(new_cat_name)
                         st.success(f"'{new_cat_name}' añadida")
@@ -262,7 +262,7 @@ elif menu == "🔧 Mantenimiento":
             st.markdown("<br>", unsafe_allow_html=True)
             if "sort_desc" not in st.session_state: st.session_state.sort_desc = True
             icon = "⬇️ Desc." if st.session_state.sort_desc else "⬆️ Asc."
-            if st.button(icon, use_container_width='stretch'):
+            if st.button(icon, width='stretch'):
                 st.session_state.sort_desc = not st.session_state.sort_desc
                 st.rerun()
 
@@ -321,10 +321,10 @@ elif menu == "🔧 Mantenimiento":
                                         st.rerun()
                         with c_btn:
                             if not edit_mode:
-                                if st.button("✏️", key=f"ed_{entry['id']}", use_container_width='stretch'):
+                                if st.button("✏️", key=f"ed_{entry['id']}", width='stretch'):
                                     st.session_state[f"edit_{entry['id']}"] = True
                                     st.rerun()
-                                if st.button("🗑️", key=f"dl_{entry['id']}", use_container_width='stretch'):
+                                if st.button("🗑️", key=f"dl_{entry['id']}", width='stretch'):
                                     delete_entry(entry['id'])
                                     st.rerun()
 
@@ -400,10 +400,10 @@ elif menu == "🔧 Mantenimiento":
                                         st.rerun()
                         with c_btn:
                             if not f_edit_mode:
-                                if st.button("✏️", key=f"f_ed_btn_{mod['id']}", use_container_width='stretch'):
+                                if st.button("✏️", key=f"f_ed_btn_{mod['id']}", width='stretch'):
                                     st.session_state[f"f_edit_{mod['id']}"] = True
                                     st.rerun()
-                                if st.button("🗑️", key=f"f_dl_{mod['id']}", use_container_width='stretch'):
+                                if st.button("🗑️", key=f"f_dl_{mod['id']}", width='stretch'):
                                     delete_future_mod(mod['id'])
                                     st.rerun()
 
@@ -494,7 +494,7 @@ elif menu == "📈 Análisis de Logs":
             with col_a:
                 st.subheader("🔍 Análisis del Mecánico Virtual")
             with col_b:
-                if st.button("🗑️ Eliminar Log", use_container_width='stretch', help="Borra este log del historial permanentemente"):
+                if st.button("🗑️ Eliminar Log", width='stretch', help="Borra este log del historial permanentemente"):
                     if active_log_id:
                         delete_log(active_log_id)
                         del st.session_state["raw_csv"]
@@ -517,7 +517,7 @@ elif menu == "📈 Análisis de Logs":
             
             for tab, chart in zip(tabs, charts):
                 with tab:
-                    st.plotly_chart(chart["fig"], use_container_width='stretch')
+                    st.plotly_chart(chart["fig"], width='stretch')
         else:
             st.warning("🤖 La IA no ha podido agrupar las columnas automáticamente.")
             
@@ -543,7 +543,7 @@ elif menu == "📈 Análisis de Logs":
                 return df, best_sep
 
             # --- BOTÓN DE FUERZA BRUTA ---
-            if st.button("🚀 GENERAR GRÁFICAS DE TODO EL LOG", use_container_width='stretch'):
+            if st.button("🚀 GENERAR GRÁFICAS DE TODO EL LOG", width='stretch'):
                 try:
                     df_all, _ = get_clean_df(raw_csv)
                     numeric_df = df_all.apply(pd.to_numeric, errors='coerce')
@@ -557,7 +557,7 @@ elif menu == "📈 Análisis de Logs":
                             for col in chunk:
                                 fig_all.add_trace(go.Scatter(x=df_all[t_col], y=numeric_df[col], name=col, mode='lines'))
                             st.subheader(f"Bloque {i//4 + 1}")
-                            st.plotly_chart(fig_all, use_container_width='stretch')
+                            st.plotly_chart(fig_all, width='stretch')
                     else:
                         st.error("No se detectaron columnas numéricas.")
                 except Exception as e:
@@ -574,7 +574,7 @@ elif menu == "📈 Análisis de Logs":
                         fig_m = go.Figure()
                         for s in selected:
                             fig_m.add_trace(go.Scatter(x=df_m[t_col], y=pd.to_numeric(df_m[s], errors='coerce'), name=s))
-                        st.plotly_chart(fig_m, use_container_width='stretch')
+                        st.plotly_chart(fig_m, width='stretch')
                 except:
                     st.write("No se pudo cargar el selector manual.")
         
@@ -590,7 +590,7 @@ elif menu == "📈 Análisis de Logs":
                         break
                 
                 df_raw = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
-                st.dataframe(df_raw, use_container_width='stretch', hide_index=True)
+                st.dataframe(df_raw, width='stretch', hide_index=True)
             except Exception as e:
                 st.code(raw_csv[:2000], language="csv")
                 st.error(f"Error al visualizar tabla: {e}")
@@ -632,7 +632,7 @@ elif menu == "🧠 Master Chat":
     # Botón para limpiar chat
     col_chat1, col_chat2 = st.columns([5, 1])
     with col_chat2:
-        if st.button("🧹 Reset", use_container_width='stretch'):
+        if st.button("🧹 Reset", width='stretch'):
             st.session_state.master_chat_history = []
             st.rerun()
 
