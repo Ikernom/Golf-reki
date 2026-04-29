@@ -240,10 +240,10 @@ elif menu == "🔧 Mantenimiento":
                         current_date = datetime.strptime(entry['date'], '%Y-%m-%d')
                         new_date = st.date_input("Fecha", value=current_date)
                         new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
-                        new_desc = st.text_input("Descripción", value=entry['description'])
+                        new_desc = st.text_input("Descripción", value=entry.get('description', ''))
                         new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
-                                             index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry['category']))
-                        new_cost = st.number_input("Coste (€)", value=float(entry['cost']))
+                                             index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry.get('category', 'Otros')))
+                        new_cost = st.number_input("Coste (€)", value=float(entry.get('cost', 0.0)))
                         
                         if st.form_submit_button("💾 Guardar Cambios"):
                             update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost)
