@@ -32,7 +32,8 @@ from src.maintenance import (
     add_category,
     list_future_mods,
     add_future_mod,
-    delete_future_mod
+    delete_future_mod,
+    update_future_mod
 )
 from src.styles import apply_styles
 
@@ -350,11 +351,11 @@ elif menu == "🔧 Mantenimiento":
                 # Estilo Indigo (Blue) para el futuro
                 prio_color = "#00ff00" if mod['priority'] == "Baja" else ("#ffff00" if mod['priority'] == "Media" else "#ff0000")
                 
-                # Burbuja Indigo
+                # Burbuja Indigo - Posicionada más abajo para entrar en el recuadro
                 st.markdown(f"""
                     <div style="position: relative; height: 0px; margin-bottom: 0px;">
-                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 12px; z-index: 99; pointer-events: none;">
-                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 3px 14px; border-radius: 2px; font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; border: 2px solid #2e5bff; box-shadow: 0 0 15px rgba(46, 91, 255, 0.4); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
+                        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 16px; z-index: 99; pointer-events: none;">
+                            <span style="background: rgba(0, 0, 0, 0.95); color: #00d4ff; padding: 2px 12px; border-radius: 2px; font-size: 0.7rem; font-weight: 800; letter-spacing: 2px; border: 1.5px solid #2e5bff; box-shadow: 0 0 10px rgba(46, 91, 255, 0.5); text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">
                                 <span style="color: #2e5bff;">●</span> {mod['category']}
                             </span>
                         </div>
@@ -362,25 +363,53 @@ elif menu == "🔧 Mantenimiento":
                 """, unsafe_allow_html=True)
                 
                 with st.container():
-                    # Usamos un CSS específico para que los expanders de futuro sean AZULES
+                    # CSS agresivo para forzar borde AZUL en esta sección
                     st.markdown(f"""
                         <style>
-                        div.stExpander:has(p:contains("{mod['description']}")) {{
+                        div[data-testid="stExpander"] {{
                             border: 2px solid #2e5bff !important;
-                            box-shadow: 0 0 10px rgba(46, 91, 255, 0.2) !important;
+                            box-shadow: 0 0 12px rgba(46, 91, 255, 0.2) !important;
+                        }}
+                        div[data-testid="stExpander"] summary p {{
+                            color: #00d4ff !important;
                         }}
                         </style>
                     """, unsafe_allow_html=True)
                     
                     with st.expander(f"🚀 {mod['description']}"):
                         c_inf, c_btn = st.columns([3, 1])
+                        
+                        f_edit_mode = st.session_state.get(f"f_edit_{mod['id']}", False)
+                        
                         with c_inf:
-                            st.markdown(f"**💰 Coste Est.:** {mod['estimated_cost']} € | **⚡ Prioridad:** <span style='color:{prio_color};'>{mod['priority']}</span>", unsafe_allow_html=True)
-                            if mod.get('notes'): st.markdown(f"**📝 Notas:** {mod['notes']}")
+                            if not f_edit_mode:
+                                st.markdown(f"**💰 Coste Est.:** {mod['estimated_cost']} € | **⚡ Prioridad:** <span style='color:{prio_color};'>{mod['priority']}</span>", unsafe_allow_html=True)
+                                if mod.get('notes'): st.markdown(f"**📝 Notas:** {mod['notes']}")
+                            else:
+                                with st.form(f"f_edit_form_{mod['id']}"):
+                                    n_f_desc = st.text_input("Descripción", value=mod['description'])
+                                    n_f_cat = st.selectbox("Categoría", db_categories, index=db_categories.index(mod['category']) if mod['category'] in db_categories else 0)
+                                    n_f_cost = st.number_input("Coste Est. (€)", value=float(mod.get('estimated_cost', 0.0)))
+                                    n_f_prio = st.select_slider("Prioridad", options=["Baja", "Media", "Alta"], value=mod['priority'])
+                                    n_f_notes = st.text_area("Notas", value=mod.get('notes', ''))
+                                    
+                                    col_f_e1, col_f_e2 = st.columns(2)
+                                    if col_f_e1.form_submit_button("💾 Guardar"):
+                                        update_future_mod(mod['id'], n_f_desc, n_f_cost, n_f_cat, n_f_prio, n_f_notes)
+                                        st.session_state[f"f_edit_{mod['id']}"] = False
+                                        st.rerun()
+                                    if col_f_e2.form_submit_button("❌ Cancelar"):
+                                        st.session_state[f"f_edit_{mod['id']}"] = False
+                                        st.rerun()
+
                         with c_btn:
-                            if st.button("🗑️", key=f"f_dl_{mod['id']}", use_container_width=True):
-                                delete_future_mod(mod['id'])
-                                st.rerun()
+                            if not f_edit_mode:
+                                if st.button("✏️", key=f"f_ed_btn_{mod['id']}", use_container_width=True):
+                                    st.session_state[f"f_edit_{mod['id']}"] = True
+                                    st.rerun()
+                                if st.button("🗑️", key=f"f_dl_{mod['id']}", use_container_width=True):
+                                    delete_future_mod(mod['id'])
+                                    st.rerun()
 
 # --- ANÁLISIS DE LOGS ---
 elif menu == "📈 Análisis de Logs":

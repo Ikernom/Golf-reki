@@ -168,3 +168,14 @@ def delete_future_mod(mod_id):
     with get_connection() as conn:
         conn.execute("DELETE FROM future_mods WHERE id = ?", (mod_id,))
         conn.commit()
+
+
+def update_future_mod(mod_id, description, estimated_cost, category, priority, notes):
+    with get_connection() as conn:
+        conn.execute(
+            """UPDATE future_mods 
+               SET description = ?, estimated_cost = ?, category = ?, priority = ?, notes = ?
+               WHERE id = ?""",
+            (description, estimated_cost, category, priority, notes, mod_id)
+        )
+        conn.commit()
