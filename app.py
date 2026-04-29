@@ -282,24 +282,26 @@ elif menu == "🔧 Mantenimiento":
         st.info("No hay intervenciones que coincidan con los filtros.")
     else:
         for entry in entries:
-            # Contenedor relativo para poder posicionar la burbuja encima del expander
+            # Contenedor relativo con ajuste fino de posición
             st.markdown(f"""
-                <div style="position: relative; margin-bottom: -15px;">
+                <div style="position: relative; height: 0px; margin-bottom: 0px;">
                     <div style="position: absolute; 
                                 left: 50%; 
                                 transform: translateX(-50%); 
-                                top: 8px; 
-                                z-index: 10; 
+                                top: 12px; 
+                                z-index: 99; 
                                 pointer-events: none;">
-                        <span style="background-color: rgba(37, 99, 235, 0.8); 
-                                     color: white; 
-                                     padding: 3px 12px; 
-                                     border-radius: 12px; 
-                                     font-size: 0.75rem; 
-                                     font-weight: bold;
-                                     border: 1px solid rgba(255,255,255,0.2);
-                                     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                     backdrop-filter: blur(4px);">
+                        <span style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.4) 0%, rgba(29, 78, 216, 0.4) 100%); 
+                                     color: #e0e7ff; 
+                                     padding: 3px 14px; 
+                                     border-radius: 20px; 
+                                     font-size: 0.7rem; 
+                                     font-weight: 600;
+                                     letter-spacing: 0.5px;
+                                     border: 1px solid rgba(255,255,255,0.15);
+                                     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+                                     backdrop-filter: blur(8px);
+                                     text-transform: uppercase;">
                             📁 {entry['category']}
                         </span>
                     </div>
