@@ -213,9 +213,30 @@ elif menu == "🔧 Mantenimiento":
     st.title("Gestión de Mantenimiento")
     db_categories = list_categories()
     
-    # Estilo LCD Global para Mantenimiento
+    # Estilo LCD Global para Mantenimiento y Pestañas
     st.markdown("""
         <style>
+        /* Estilo para las Pestañas (Tabs) */
+        div[data-testid="stTabs"] button {
+            background-color: #000000 !important;
+            color: #555555 !important;
+            border: 1px solid #333333 !important;
+            border-bottom: 2px solid #ff0000 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        div[data-testid="stTabs"] button[aria-selected="true"] {
+            color: #1c47ff !important;
+            border: 1px solid #1c47ff !important;
+            border-bottom: 3px solid #1c47ff !important;
+            box-shadow: 0 0 15px rgba(28, 71, 255, 0.4), inset 0 0 10px rgba(28, 71, 255, 0.2) !important;
+            text-shadow: 0 0 10px rgba(28, 71, 255, 0.8) !important;
+        }
+        
         /* Estilo para los inputs de registro/edición */
         div.stForm input, div.stForm textarea {
             background-color: #000000 !important;
