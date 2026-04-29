@@ -69,14 +69,21 @@ with st.sidebar:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Navegación principal
+    # Lógica de persistencia de página (Callback para evitar el doble clic)
     menu_options = ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"]
-    default_page = st.query_params.get("page", "🏠 Dashboard")
-    if default_page not in menu_options: default_page = "🏠 Dashboard"
-    idx = menu_options.index(default_page)
     
-    menu = st.radio("SISTEMA CENTRAL", menu_options, index=idx)
-    st.query_params["page"] = menu
+    if "active_menu" not in st.session_state:
+        st.session_state.active_menu = st.query_params.get("page", "🏠 Dashboard")
+    
+    def sync_menu():
+        st.query_params["page"] = st.session_state.active_menu
+
+    menu = st.radio(
+        "SISTEMA CENTRAL", 
+        menu_options, 
+        key="active_menu", 
+        on_change=sync_menu
+    )
 
     st.markdown("---")
     
