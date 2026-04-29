@@ -150,7 +150,15 @@ def add_category(name: str):
 
 def list_future_mods():
     with get_connection() as conn:
-        cursor = conn.execute("SELECT * FROM future_mods ORDER BY priority DESC")
+        cursor = conn.execute("""
+            SELECT * FROM future_mods 
+            ORDER BY CASE priority
+                WHEN 'Alta' THEN 1
+                WHEN 'Media' THEN 2
+                WHEN 'Baja' THEN 3
+                ELSE 4
+            END ASC
+        """)
         return [dict(row) for row in cursor.fetchall()]
 
 
