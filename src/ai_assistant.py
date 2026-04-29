@@ -9,14 +9,13 @@ import time
 from src.maintenance import get_vehicle_info
 
 def safe_generate_content(model, prompt, max_retries=3):
-    """ECU RELAY: Gestiona la comunicación con Google con protección de bus."""
+    """ECU RELAY: Gestión de peticiones con reintento automático."""
     for attempt in range(max_retries):
         try:
-            time.sleep(1)
             return model.generate_content(prompt)
         except Exception as e:
             if "429" in str(e) and attempt < max_retries - 1:
-                time.sleep((attempt + 1) * 5)
+                time.sleep((attempt + 1) * 2)
                 continue
             raise e
 
@@ -27,7 +26,7 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
-        prompt = f"Analiza este log VCDS de Golf IV y devuelve solo JSON con gráficas. Log: {raw_csv_text[:1000]}"
+        prompt = f"Analiza este log VCDS de Golf IV y devuelve solo JSON con gráficas. Log: {raw_csv_text[:4000]}"
         response = safe_generate_content(model, prompt)
         text = re.sub(r'^```json\s*|\s*```$', '', response.text.strip())
         return json.loads(text)
@@ -66,27 +65,49 @@ def ai_chat_response(raw_csv_text, user_query, history=None):
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
-        return safe_generate_content(model, f"Mecánico Golf IV. Log: {raw_csv_text[:1000]}. Pregunta: {user_query}").text
+        return safe_generate_content(model, f"Mecánico Golf IV. Log: {raw_csv_text[:4000]}. Pregunta: {user_query}").text
     except Exception as e: return f"Error: {e}"
 
 @st.cache_data(ttl=600, show_spinner=False)
 def ai_master_chat_response(user_query: str) -> str:
-    """Master Chat con protección total contra 429 y alias LATEST."""
+    """Master Chat con MEMORIA TOTAL del vehículo."""
     from src.maintenance import get_vehicle_info, list_entries, list_future_mods, get_active_faults
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
     if not api_key: return "⚠️ Configura API Key."
 
     try:
-        m = [e['description'] for e in list_entries()[:10]]
-        w = [mod['description'] for mod in list_future_mods()[:10]]
-        contexto = f"Coche: Golf IV. KM: {info.get('current_mileage')}. Hecho: {m}. Pendiente: {w}."
+        # Recuperamos ABSOLUTAMENTE TODO el historial y wishlist
+        mantenimiento = [f"{e['date']} ({e['mileage_km']}km): {e['description']} - Coste: {e.get('cost_eur', 0)}€" for e in list_entries()]
+        wishlist = [f"{m['description']} (Prioridad: {m['priority']})" for m in list_future_mods()]
+        averias = [f"{f['component']}: {f['description']}" for f in get_active_faults()]
+        
+        contexto = f"""ERES EL CEREBRO DE UN PROYECTO VOLKSWAGEN GOLF MK4 TDI.
+DATOS DEL VEHÍCULO:
+- Motor: {info.get('engine_type')}
+- Kilometraje Actual: {info.get('current_mileage')} KM
+
+HISTORIAL COMPLETO DE MANTENIMIENTO:
+{chr(10).join(mantenimiento)}
+
+WISHLIST / MODS PENDIENTES:
+{chr(10).join(wishlist)}
+
+AVERÍAS Y FALLOS ACTIVOS:
+{chr(10).join(averias)}
+
+INSTRUCCIONES:
+- Analiza toda la información para dar consejos coherentes.
+- Si te preguntan por el futuro, ten en cuenta el pasado (ej: si ya cambió el turbo, no sugieras cambiarlo pronto).
+- Mantén una actitud de ingeniero experto en VAG.
+"""
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
-        response = safe_generate_content(model, f"{contexto}\nPregunta: {user_query}")
+        full_prompt = f"{contexto}\n\nUSUARIO PREGUNTA: {user_query}"
+        response = safe_generate_content(model, full_prompt)
         return response.text
     except Exception as e:
         if "429" in str(e):
-            return "⚠️ **CONEXIÓN ECU SATURADA**. El sistema de Google está limitando las peticiones. Por favor, espera unos segundos y pulsa Reset si persiste."
-        return f"Error: {str(e)}"
+            return "⚠️ **ECU OVERLOAD (429)**. Google sigue limitando las peticiones. Por favor, espera 20 segundos."
+        return f"Error Master Chat: {str(e)}"
