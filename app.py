@@ -326,19 +326,52 @@ elif menu == "📈 Análisis de Logs":
         
         # Generar gráficas
         st.divider()
-        st.subheader("📈 Gráficas por Grupo")
+        st.subheader("📈 Gráficas del Log")
         
         charts = ai_build_charts(raw_csv, structure)
         
         if charts:
-            tab_names = [f"{c['name']} ({c['gid']})" for c in charts]
+            tab_names = [f"{c['name']} ({c.get('gid', 'Auto')})" for c in charts]
             tabs = st.tabs(tab_names)
             
             for tab, chart in zip(tabs, charts):
                 with tab:
                     st.plotly_chart(chart["fig"], use_container_width=True)
         else:
-            st.warning("No se pudieron generar gráficas. Prueba a preguntar en el chat.")
+            st.warning("🤖 La IA no ha podido agrupar las columnas automáticamente.")
+            
+            # --- SELECTOR MANUAL DE EMERGENCIA ---
+            with st.expander("🛠️ CONSTRUCTOR DE GRÁFICA MANUAL", expanded=True):
+                st.info("Selecciona las columnas que quieres ver en la gráfica:")
+                try:
+                    lines = raw_csv.splitlines()
+                    best_sep = "," if raw_csv.count(",") > raw_csv.count(";") else ";"
+                    h_idx = 0
+                    for i, line in enumerate(lines[:40]):
+                        if line.count(best_sep) >= 3 and ("Group" in line or "TIME" in line.upper()):
+                            h_idx = i
+                            break
+                    
+                    df_manual = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
+                    df_manual.columns = [str(c).strip() for c in df_manual.columns]
+                    
+                    # Detectar tiempo
+                    t_col = next((c for c in df_manual.columns if 'TIME' in c.upper()), df_manual.columns[0])
+                    
+                    # Multiselector de columnas
+                    all_cols = [c for c in df_manual.columns if c != t_col]
+                    selected_cols = st.multiselect("Columnas a graficar:", all_cols)
+                    
+                    if selected_cols:
+                        fig_manual = go.Figure()
+                        for sc in selected_cols:
+                            y_data = pd.to_numeric(df_manual[sc], errors='coerce')
+                            fig_manual.add_trace(go.Scatter(x=df_manual[t_col], y=y_data, name=sc, mode='lines'))
+                        
+                        fig_manual.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                        st.plotly_chart(fig_manual, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error en constructor manual: {e}")
         
         # Datos crudos (con salto de cabecera inteligente)
         with st.expander("📋 Datos crudos del CSV"):

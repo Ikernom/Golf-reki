@@ -16,25 +16,25 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
 
     try:
         lines = raw_csv_text.splitlines()
-        data_start_idx = 0
-        for i, line in enumerate(lines[:40]):
+        # Buscamos dónde empieza la acción (línea con más de 3 comas/puntos y coma)
+        start_row = 0
+        for i, line in enumerate(lines[:50]):
             if line.count(",") >= 3 or line.count(";") >= 3:
-                if "Group" in line or "RPM" in line or "TIME" in line.upper():
-                    data_start_idx = i
-                    break
+                start_row = i
+                break
         
-        csv_sample = "\n".join(lines[data_start_idx:data_start_idx+60])
+        sample = "\n".join(lines[start_row:start_row+100])
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
         
-        prompt = f"""Analiza este log de VCDS. Devuelve SOLO JSON:
+        prompt = f"""Experto en VCDS. Analiza este CSV de un TDI. Devuelve SOLO JSON:
 {{
-  "groups": [{{ "gid": "011", "name": "Turbo", "columns": ["Engine Speed", "Boost Pressure"] }}],
-  "analysis": "resumen",
+  "groups": [{{ "gid": "001", "name": "Nombre", "columns": ["NombreExacto1"] }}],
+  "analysis": "resumen técnico corto",
   "detected_faults": []
 }}
 CSV:
-{csv_sample}"""
+{sample}"""
 
         response = model.generate_content(prompt)
         text = re.sub(r'^```json\s*|\s*```$', '', response.text.strip())
@@ -44,69 +44,71 @@ CSV:
 
 
 def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
-    """Construye gráficas con lógica de 'Smart Match'."""
-    try:
-        lines = raw_csv_text.splitlines()
-        best_sep = "," if raw_csv_text.count(",") > raw_csv_text.count(";") else ";"
-        header_idx = 0
-        for i, line in enumerate(lines[:50]):
-            if line.count(best_sep) >= 3 and ("Group" in line or "TIME" in line.upper()):
-                header_idx = i
-                break
-        
-        df = pd.read_csv(io.StringIO("\n".join(lines[header_idx:])), sep=best_sep, on_bad_lines='skip')
-        df.columns = [str(c).strip() for c in df.columns]
-        
-        # Quedarse solo con columnas numéricas
-        numeric_df = df.apply(pd.to_numeric, errors='coerce')
-        valid_cols = [c for c in numeric_df.columns if numeric_df[c].notna().any()]
-        
-        time_col = next((c for c in df.columns if 'TIME' in c.upper() or 'STAMP' in c.upper()), df.columns[0])
-        figures = []
-        
-        groups = structure.get("groups", [])
-        
-        # Si la IA no devolvió grupos, creamos uno genérico con todo lo que sea numérico
-        if not groups:
-            groups = [{"gid": "ALL", "name": "Datos Detectados", "columns": valid_cols}]
+    """Construye gráficas. Si falla la IA, usa lógica de detección automática."""
+    lines = raw_csv_text.splitlines()
+    best_sep = "," if raw_csv_text.count(",") > raw_csv_text.count(";") else ";"
+    
+    # 1. Encontrar la cabecera real
+    h_idx = 0
+    for i, line in enumerate(lines[:50]):
+        if line.count(best_sep) >= 3:
+            h_idx = i
+            break
+            
+    # 2. Cargar DataFrame
+    df = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
+    df.columns = [str(c).strip() for c in df.columns]
+    
+    # 3. Identificar columnas numéricas
+    numeric_df = df.apply(pd.to_numeric, errors='coerce')
+    cols_con_datos = [c for c in numeric_df.columns if numeric_df[c].notna().sum() > 5]
+    
+    if not cols_con_datos:
+        return []
 
+    # 4. Eje X (Tiempo o índice)
+    time_col = next((c for c in df.columns if 'TIME' in c.upper() or 'STAMP' in c.upper()), None)
+    x_axis = df[time_col] if time_col else numeric_df.index
+
+    figures = []
+    groups = structure.get("groups", [])
+    
+    # --- SI HAY GRUPOS DE LA IA ---
+    if groups:
         for g in groups:
             fig = go.Figure()
             target_cols = [c.lower() for c in g.get("columns", [])]
             
-            added_any = False
-            for dfc in valid_cols:
-                # Match si el nombre está en el JSON O si el nombre del grupo está en la columna
-                match_json = any(tc in dfc.lower() for tc in target_cols)
-                match_group = g["name"].lower() in dfc.lower()
-                
-                if match_json or match_group:
-                    fig.add_trace(go.Scatter(x=df[time_col], y=numeric_df[dfc], name=dfc, mode='lines'))
-                    added_any = True
+            for dfc in cols_con_datos:
+                # Match flexible: ¿el nombre que pide la IA está dentro del nombre de la columna?
+                if any(tc in dfc.lower() for tc in target_cols) or g["name"].lower() in dfc.lower():
+                    fig.add_trace(go.Scatter(x=x_axis, y=numeric_df[dfc], name=dfc, mode='lines'))
             
-            if added_any:
-                fig.update_layout(
-                    title=f"GRUPO {g.get('gid')}: {g['name']}",
-                    xaxis_title="Tiempo (s)",
-                    template="plotly_dark",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    hovermode="x unified"
-                )
+            if len(fig.data) > 0:
+                fig.update_layout(title=f"GRUPO {g.get('gid')}: {g['name']}", template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
                 figures.append({"name": g["name"], "fig": fig})
-        
-        return figures
-    except Exception as e:
-        st.error(f"Error gráfico: {e}")
-        return []
+
+    # --- SI NO HAY GRUPOS O NO COINCIDEN, GRAFICAMOS TODO LO DETECTADO ---
+    if not figures:
+        # Agrupamos por 4 columnas para no saturar una sola gráfica
+        for i in range(0, len(cols_con_datos), 4):
+            chunk = cols_con_datos[i:i+4]
+            fig = go.Figure()
+            for col in chunk:
+                fig.add_trace(go.Scatter(x=x_axis, y=numeric_df[col], name=col, mode='lines'))
+            
+            fig.update_layout(title=f"Datos Detectados (Automático) - Bloque {i//4 + 1}", template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            figures.append({"name": f"Auto {i//4 + 1}", "fig": fig})
+            
+    return figures
 
 def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -> str:
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
-    if not api_key: return "API Key faltante."
+    if not api_key: return "Falta API Key."
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
-        prompt = f"Mecánico TDI. Pregunta: {user_query}. Datos: {raw_csv_text[:2000]}"
+        prompt = f"Mecánico TDI. Datos log: {raw_csv_text[:2000]}. Usuario: {user_query}"
         return model.generate_content(prompt).text
-    except: return "Error."
+    except Exception as e: return f"Error: {e}"
