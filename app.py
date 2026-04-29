@@ -282,11 +282,33 @@ elif menu == "🔧 Mantenimiento":
         st.info("No hay intervenciones que coincidan con los filtros.")
     else:
         for entry in entries:
-            # Título limpio (Solo descripción) y recuadro de ancho total
+            # Contenedor relativo para poder posicionar la burbuja encima del expander
+            st.markdown(f"""
+                <div style="position: relative; margin-bottom: -15px;">
+                    <div style="position: absolute; 
+                                left: 50%; 
+                                transform: translateX(-50%); 
+                                top: 8px; 
+                                z-index: 10; 
+                                pointer-events: none;">
+                        <span style="background-color: rgba(37, 99, 235, 0.8); 
+                                     color: white; 
+                                     padding: 3px 12px; 
+                                     border-radius: 12px; 
+                                     font-size: 0.75rem; 
+                                     font-weight: bold;
+                                     border: 1px solid rgba(255,255,255,0.2);
+                                     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                                     backdrop-filter: blur(4px);">
+                            📁 {entry['category']}
+                        </span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Título limpio y ancho total
             with st.expander(f"🛠️ {entry['description']}"):
-                # Rejilla interna: [Información, Categoría (Burbuja), Botones]
-                # Usamos [2, 2, 1] para que la columna central coincida con los filtros de arriba
-                col_info, col_bubble, col_btns = st.columns([2, 2, 1])
+                col_info, col_btns = st.columns([3, 1])
                 
                 # Estado para saber si estamos editando esta entrada
                 edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
@@ -319,27 +341,8 @@ elif menu == "🔧 Mantenimiento":
                                 st.session_state[f"edit_{entry['id']}"] = False
                                 st.rerun()
 
-                with col_bubble:
-                    if not edit_mode:
-                        # La famosa burbuja azul, alineada con el campo de "Ordenar por"
-                        st.markdown(f"""
-                            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
-                                <span style="background-color: rgba(37, 99, 235, 0.2); 
-                                             color: #3b82f6; 
-                                             padding: 6px 16px; 
-                                             border-radius: 20px; 
-                                             font-size: 0.9rem; 
-                                             font-weight: bold;
-                                             border: 1px solid rgba(37, 99, 235, 0.4);
-                                             box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                                    📁 {entry['category']}
-                                </span>
-                            </div>
-                        """, unsafe_allow_html=True)
-
                 with col_btns:
                     if not edit_mode:
-                        st.markdown("<br>", unsafe_allow_html=True)
                         if st.button("✏️ Editar", key=f"btn_edit_{entry['id']}", use_container_width=True):
                             st.session_state[f"edit_{entry['id']}"] = True
                             st.rerun()
