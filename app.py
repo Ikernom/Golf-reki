@@ -91,15 +91,21 @@ if menu == "🏠 Dashboard":
     # Header metrics
     info = get_vehicle_info()
     last_km = int(info.get("current_mileage", 280000))
+    oil_interval = int(info.get("oil_interval", 10000))
+    
+    # Prioritize manual override from settings, fallback to DB search
+    last_oil_km = int(info.get("last_oil_change_km", 0))
+    if last_oil_km == 0:
+        last_oil_km = get_last_mileage_for_category("Aceite") or 270000
+
     entries = list_entries()
     df_entries = pd.DataFrame(entries) if entries else pd.DataFrame()
     total_cost = df_entries["cost_eur"].sum() if not df_entries.empty else 0
-    last_oil_km = get_last_mileage_for_category("Aceite") or 270000
     
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Kilometraje Actual", f"{last_km:,} km")
     c2.metric("Último Cambio Aceite", f"{last_oil_km:,} km", delta=f"{last_km - last_oil_km} km", delta_color="inverse")
-    c3.metric("Próximo Aceite", f"{last_oil_km + 10000:,} km", delta=f"{(last_oil_km + 10000) - last_km} km")
+    c3.metric("Próximo Aceite", f"{last_oil_km + oil_interval:,} km", delta=f"{(last_oil_km + oil_interval) - last_km} km")
     c4.metric("Inversión Total", f"{total_cost:,.2f} €")
 
     st.markdown("---")
@@ -270,7 +276,9 @@ elif menu == "⚙️ Configuración":
         vin = st.text_input("Bastidor (VIN)", value=info.get("vin", ""))
         engine_code = st.text_input("Código Motor", value=info.get("engine_code", "ALH"))
         plate = st.text_input("Matrícula", value=info.get("plate", ""))
-        current_mileage_cfg = st.number_input("Kilometraje Actual (km)", value=min_allowed_km, min_value=min_allowed_km)
+        current_mileage_cfg = st.number_input("Kilometraje Actual (km)", value=int(info.get("current_mileage", 280000)), min_value=0)
+        last_oil_cfg = st.number_input("Kilometraje Último Cambio Aceite (km)", value=int(info.get("last_oil_change_km", 270000)), min_value=0)
+        oil_interval = st.number_input("Intervalo Cambio Aceite (km)", value=int(info.get("oil_interval", 10000)), min_value=1000, step=500)
         
         st.markdown("---")
         st.subheader("IA y Conectividad")
@@ -281,6 +289,8 @@ elif menu == "⚙️ Configuración":
             update_vehicle_info("engine_code", engine_code)
             update_vehicle_info("plate", plate)
             update_vehicle_info("current_mileage", str(current_mileage_cfg))
+            update_vehicle_info("last_oil_change_km", str(last_oil_cfg))
+            update_vehicle_info("oil_interval", str(oil_interval))
             update_vehicle_info("gemini_api_key", gemini_key)
             st.success("Ficha técnica actualizada.")
             st.rerun()
