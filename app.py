@@ -270,10 +270,16 @@ elif menu == "📈 Análisis de Logs":
             st.session_state["structure"] = structure
             st.session_state.ai_chat_history = []
             
-            # Registrar fallos detectados
-            if structure.get("detected_faults"):
-                for fault in structure["detected_faults"]:
-                    add_fault(fault["component"], fault["severity"], fault["description"])
+            # Registrar fallos detectados con validación de tipo
+            detected = structure.get("detected_faults", [])
+            if isinstance(detected, list):
+                for fault in detected:
+                    if isinstance(fault, dict) and "component" in fault:
+                        add_fault(
+                            fault.get("component", "Desconocido"), 
+                            fault.get("severity", "WARNING"), 
+                            fault.get("description", "Sin descripción")
+                        )
             
             st.success("Log analizado y guardado en el historial.")
 
