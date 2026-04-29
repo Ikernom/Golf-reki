@@ -630,20 +630,37 @@ elif menu == "⚙️ Configuración":
     st.title("Ajustes del Vehículo")
     info = get_vehicle_info()
     
-    # Contenedor con borde rojo (estilo MK4)
+    # Estilo MK4 Full Indigo-Red para el formulario
     st.markdown("""
         <style>
         div[data-testid="stForm"] {
             border: 2px solid #ff0000 !important;
             background-color: #000000 !important;
-            box-shadow: 0 0 15px rgba(255, 0, 0, 0.2) !important;
-            border-radius: 4px !important;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3) !important;
+            padding: 2rem !important;
+        }
+        /* Estilo para los labels de los inputs */
+        div[data-testid="stForm"] label p {
+            color: #1c47ff !important;
+            text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            font-size: 0.85rem !important;
+            letter-spacing: 1px !important;
+        }
+        /* Estilo para los inputs */
+        div[data-testid="stForm"] input {
+            background-color: #0a0a0a !important;
+            color: #ffffff !important;
+            border: 1px solid #ff0000 !important;
+            border-radius: 2px !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
     with st.form("vehicle_info"):
-        st.markdown("<h3 style='color:#00aaff; text-shadow: 0 0 10px rgba(0,170,255,0.7);'>📋 FICHA TÉCNICA</h3>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#1c47ff; text-shadow: 0 0 15px rgba(28,71,255,0.8); margin-bottom:20px;'>📋 FICHA TÉCNICA</h2>", unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         with col1:
@@ -655,8 +672,8 @@ elif menu == "⚙️ Configuración":
             last_oil_cfg = st.number_input("Kilometraje Último Cambio Aceite (km)", value=int(info.get("last_oil_change_km", 270000)), min_value=0)
             oil_interval = st.number_input("Intervalo Cambio Aceite (km)", value=int(info.get("oil_interval", 10000)), min_value=1000, step=500)
         
-        st.markdown("<br><h3 style='color:#00aaff; text-shadow: 0 0 10px rgba(0,170,255,0.7);'>🤖 MECÁNICO IA</h3>", unsafe_allow_html=True)
-        gemini_key = st.text_input("Gemini API Key", value=info.get("gemini_api_key", ""), type="password", help="Obtenla en aistudio.google.com")
+        st.markdown("<br><h2 style='color:#1c47ff; text-shadow: 0 0 15px rgba(28,71,255,0.8); margin-bottom:20px;'>🤖 MECÁNICO IA</h2>", unsafe_allow_html=True)
+        gemini_key = st.text_input("Gemini API Key", value=info.get("gemini_api_key", ""), type="password")
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.form_submit_button("💾 ACTUALIZAR SISTEMA"):
