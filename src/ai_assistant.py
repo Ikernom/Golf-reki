@@ -83,7 +83,7 @@ def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -
 
 
 def ai_master_chat_response(user_query: str, history: list = None) -> str:
-    """Chat maestro ultracompacto para evitar 429."""
+    """Chat maestro con visión TOTAL del historial (Compactado)."""
     from src.maintenance import (
         get_vehicle_info, list_entries, list_future_mods, 
         get_active_faults, get_reminders
@@ -93,12 +93,17 @@ def ai_master_chat_response(user_query: str, history: list = None) -> str:
     if not api_key: return "⚠️ Configura API Key."
 
     try:
-        # RESUMEN ULTRA-CORTO para ahorrar cuota
-        mantenimiento = [f"{e['date']}: {e['description']}" for e in list_entries()[:5]]
-        wishlist = [f"{m['description']} ({m['priority']})" for m in list_future_mods()[:5]]
+        # COMPRESIÓN TOTAL: Incluimos TODO el historial pero solo fecha y descripción
+        mantenimiento = [f"{e['date']}: {e['description']}" for e in list_entries()]
+        wishlist = [f"{m['description']} ({m['priority']})" for m in list_future_mods()]
         averias = [f['component'] for f in get_active_faults()]
         
-        contexto = f"Golf MK4 ({info.get('engine_type', 'TDI')}). KM: {info.get('current_mileage')}. Mant: {mantenimiento}. Mods: {wishlist}. Averías: {averias}. INSTRUCCIÓN: Sé muy breve y técnico."
+        contexto = f"""CEREBRO GOLF MK4. 
+KM: {info.get('current_mileage')}. Motor: {info.get('engine_type')}.
+HISTORIAL COMPLETO: {", ".join(mantenimiento)}.
+WISHLIST COMPLETA: {", ".join(wishlist)}.
+AVERÍAS ACTIVAS: {", ".join(averias)}.
+INSTRUCCIÓN: Tienes visión de todo el pasado del coche. Responde de forma técnica."""
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
@@ -106,5 +111,5 @@ def ai_master_chat_response(user_query: str, history: list = None) -> str:
         response = model.generate_content(full_prompt)
         return response.text
     except Exception as e:
-        if "429" in str(e): return "⚠️ **ECU OVERLOAD**. Demasiados datos. Espera 20s y reintenta."
+        if "429" in str(e): return "⚠️ **ECU OVERLOAD**. Demasiada información de golpe. Espera 20s."
         return f"Error: {str(e)}"
