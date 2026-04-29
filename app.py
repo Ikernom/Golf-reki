@@ -288,6 +288,24 @@ elif menu == "📈 Análisis de Logs":
         raw_csv = st.session_state["raw_csv"]
         structure = st.session_state["structure"]
         active_log_id = st.session_state.get("active_log_id")
+
+        # --- DEPURADOR DE LOGS (Solo visible si algo falla) ---
+        with st.expander("🛠️ Depurador de Datos (Si no ves gráficas, abre esto)"):
+            import io
+            st.write("### Estructura detectada por IA")
+            st.json(structure)
+            
+            try:
+                # Intentamos leer las columnas reales
+                lines = raw_csv.splitlines()
+                best_sep = "," if raw_csv.count(",") > raw_csv.count(";") else ";"
+                for i, line in enumerate(lines[:20]):
+                    if len(line.split(best_sep)) > 3:
+                        st.write(f"Columnas detectadas en fila {i}:")
+                        st.code(line.split(best_sep))
+                        break
+            except Exception as e:
+                st.error(f"Error en depurador: {e}")
         
         # Mostrar análisis del mecánico
         if structure.get("analysis"):
@@ -322,16 +340,22 @@ elif menu == "📈 Análisis de Logs":
         else:
             st.warning("No se pudieron generar gráficas. Prueba a preguntar en el chat.")
         
-        # Datos crudos
+        # Datos crudos (con salto de cabecera inteligente)
         with st.expander("📋 Datos crudos del CSV"):
             try:
-                sep = structure.get("separator", ",")
-                header = structure.get("header_rows", 0)
-                import io
-                df_raw = pd.read_csv(io.StringIO(raw_csv), sep=sep, header=header, on_bad_lines='skip')
+                lines = raw_csv.splitlines()
+                best_sep = "," if raw_csv.count(",") > raw_csv.count(";") else ";"
+                h_idx = 0
+                for i, line in enumerate(lines[:40]):
+                    if line.count(best_sep) >= 3 and ("Group" in line or "TIME" in line.upper()):
+                        h_idx = i
+                        break
+                
+                df_raw = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
                 st.dataframe(df_raw, use_container_width=True, hide_index=True)
-            except Exception:
-                st.code(raw_csv[:3000], language="csv")
+            except Exception as e:
+                st.code(raw_csv[:2000], language="csv")
+                st.error(f"Error al visualizar tabla: {e}")
 
         # --- CHAT IA ---
         st.divider()
