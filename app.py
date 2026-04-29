@@ -237,25 +237,42 @@ elif menu == "🔧 Mantenimiento":
             text-shadow: 0 0 10px rgba(28, 71, 255, 0.8) !important;
         }
         
-        /* Estilo para los inputs de registro/edición y SELECTBOXES */
-        div.stForm input, div.stForm textarea, div[data-baseweb="select"] {
+        /* RECONSTRUCCIÓN TOTAL SELECTBOXES LCD */
+        div[data-baseweb="select"] > div {
+            background-color: #000000 !important;
+            border: 1.5px solid #ff0000 !important;
+            border-radius: 4px !important;
+            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.2) !important;
+            height: 45px !important;
+        }
+        
+        /* Texto del valor seleccionado */
+        div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
+        div[data-baseweb="select"] span {
+            color: #1c47ff !important;
+            text-shadow: 0 0 8px rgba(28, 71, 255, 0.8) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: 800 !important;
+            font-size: 1rem !important;
+            text-transform: uppercase !important;
+        }
+
+        /* Icono de la flecha (dropdown) */
+        div[data-baseweb="select"] svg {
+            fill: #ff0000 !important;
+        }
+
+        /* Estilo para los inputs de registro/edición (Formularios) */
+        div.stForm input, div.stForm textarea {
             background-color: #000000 !important;
             color: #1c47ff !important;
-            border: 1px solid #ff0000 !important;
-            box-shadow: inset 0 0 10px rgba(28, 71, 255, 0.2) !important;
+            border: 1.5px solid #ff0000 !important;
+            box-shadow: inset 0 0 12px rgba(28, 71, 255, 0.25) !important;
             text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
             font-family: 'JetBrains Mono', monospace !important;
+            padding: 12px !important;
             border-radius: 4px !important;
         }
-        
-        /* Asegurar que el texto dentro del selectbox sea indigo */
-        div[data-baseweb="select"] span, div[data-baseweb="select"] div {
-            color: #1c47ff !important;
-            text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
-        }
-        
-        /* Ajuste de labels en mantenimiento */
-        div.stForm label p {
             color: #1c47ff !important;
             text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
             font-family: 'JetBrains Mono', monospace !important;
