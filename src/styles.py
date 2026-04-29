@@ -101,6 +101,6 @@ def apply_styles():
         }
 
         /* Hide Streamlit elements */
-        #MainMenu, footer, header { visibility: hidden; }
+        #MainMenu, footer { visibility: hidden; }
         </style>
     """, unsafe_allow_html=True)
