@@ -53,11 +53,26 @@ with st.sidebar:
     st.markdown("### **GOLF MK4 TDI**")
     st.markdown('<p style="background-color: #1a0000; color: #ff0000; padding: 5px 12px; border-radius: 4px; font-weight: bold; border: 1px solid #ff0000; display: inline-block; font-size: 0.7rem; font-family: monospace; box-shadow: 0 0 10px rgba(255,0,0,0.3);">MFA ACTIVE | ALH 1.9</p>', unsafe_allow_html=True)
     st.markdown("---")
+    
+    # Lógica de persistencia de página mediante URL
+    menu_options = ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"]
+    
+    # Leer página actual de la URL o usar Dashboard por defecto
+    default_page = st.query_params.get("page", "🏠 Dashboard")
+    if default_page not in menu_options:
+        default_page = "🏠 Dashboard"
+    
+    idx = menu_options.index(default_page)
+    
     menu = st.radio(
         "MENÚ PRINCIPAL",
-        ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"],
-        label_visibility="collapsed"
+        menu_options,
+        index=idx
     )
+    
+    # Actualizar la URL al cambiar de menú
+    st.query_params["page"] = menu
+
     st.markdown("---")
     
     # KM Management in Sidebar
