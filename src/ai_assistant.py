@@ -149,7 +149,7 @@ def ai_chat_response(raw_csv_text: str, user_query: str) -> str:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro-latest')
+        model = genai.GenerativeModel('gemini-flash-latest')
 
         vehicle = f"Golf IV 1.9 TDI ALH, {info.get('current_mileage', '280000')} km"
 
