@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/readme_hero.png" width="100%" alt="Golf MK4 Dashboard Hero">
-</p>
-
 <h1 align="center">
   <font color="#1c47ff">GOLF MK4</font> <font color="#ff0000">REKI</font>
 </h1>
