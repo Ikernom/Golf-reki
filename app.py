@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import json
 import io
+from datetime import datetime
 
 from src.db import init_db
 from src.ai_assistant import ai_analyze_csv, ai_build_charts, ai_chat_response
