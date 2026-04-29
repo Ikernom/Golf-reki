@@ -55,9 +55,15 @@ def init_db() -> None:
                 filename TEXT NOT NULL,
                 content TEXT NOT NULL,
                 analysis_json TEXT,
-                chat_history_json TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Migración: Añadir chat_history_json si no existe
+        try:
+            conn.execute("ALTER TABLE logs ADD COLUMN chat_history_json TEXT")
+        except sqlite3.OperationalError:
+            # La columna ya existe, no hacemos nada
+            pass
         
         conn.commit()
