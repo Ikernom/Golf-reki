@@ -654,7 +654,7 @@ elif menu == "🧠 Master Chat":
             with st.chat_message("assistant", avatar="🏎️"):
                 with st.spinner("Consultando base de datos..."):
                     from src.ai_assistant import ai_master_chat_response
-                    response = ai_master_chat_response(chat_prompt, st.session_state.master_chat_history)
+                    response = ai_master_chat_response(chat_prompt)
                     st.write(response)
         st.session_state.master_chat_history.append({"role": "assistant", "content": response})
 

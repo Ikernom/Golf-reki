@@ -82,34 +82,28 @@ def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -
         return f"Error: {e}"
 
 
-def ai_master_chat_response(user_query: str, history: list = None) -> str:
-    """Chat maestro con visión TOTAL del historial (Compactado)."""
+@st.cache_data(ttl=60, show_spinner=False)
+def ai_master_chat_response(user_query: str) -> str:
+    """Chat maestro con visión TOTAL y CACHÉ para evitar 429."""
     from src.maintenance import (
         get_vehicle_info, list_entries, list_future_mods, 
-        get_active_faults, get_reminders
+        get_active_faults
     )
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
     if not api_key: return "⚠️ Configura API Key."
 
     try:
-        # COMPRESIÓN TOTAL: Incluimos TODO el historial pero solo fecha y descripción
         mantenimiento = [f"{e['date']}: {e['description']}" for e in list_entries()]
         wishlist = [f"{m['description']} ({m['priority']})" for m in list_future_mods()]
         averias = [f['component'] for f in get_active_faults()]
         
-        contexto = f"""CEREBRO GOLF MK4. 
-KM: {info.get('current_mileage')}. Motor: {info.get('engine_type')}.
-HISTORIAL COMPLETO: {", ".join(mantenimiento)}.
-WISHLIST COMPLETA: {", ".join(wishlist)}.
-AVERÍAS ACTIVAS: {", ".join(averias)}.
-INSTRUCCIÓN: Tienes visión de todo el pasado del coche. Responde de forma técnica."""
+        contexto = f"Golf MK4. KM: {info.get('current_mileage')}. Mant: {mantenimiento}. Mods: {wishlist}. Averías: {averias}."
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
-        full_prompt = f"{contexto}\nPregunta: {user_query}"
-        response = model.generate_content(full_prompt)
+        response = model.generate_content(f"{contexto}\nPregunta: {user_query}")
         return response.text
     except Exception as e:
-        if "429" in str(e): return "⚠️ **ECU OVERLOAD**. Demasiada información de golpe. Espera 20s."
+        if "429" in str(e): return "⚠️ **SISTEMA SATURADO**. Espera 10s."
         return f"Error: {str(e)}"
