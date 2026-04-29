@@ -236,7 +236,8 @@ elif menu == "🔧 Mantenimiento":
                 with col1:
                     # Formulario de edición (dentro del expander)
                     with st.form(f"edit_form_{entry['id']}"):
-                        new_date = st.date_input("Fecha", value=datetime.strptime(entry['date'], '%Y-%m-%d'))
+                        current_date = datetime.strptime(entry['date'], '%Y-%m-%d')
+                        new_date = st.date_input("Fecha", value=current_date)
                         new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
                         new_desc = st.text_input("Descripción", value=entry['description'])
                         new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
