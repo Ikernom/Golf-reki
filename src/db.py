@@ -55,6 +55,7 @@ def init_db() -> None:
                 filename TEXT NOT NULL,
                 content TEXT NOT NULL,
                 analysis_json TEXT,
+                chat_history_json TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')

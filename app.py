@@ -18,6 +18,7 @@ from src.maintenance import (
     save_log,
     list_logs,
     get_log,
+    update_log_chat,
     get_last_mileage_for_category
 )
 from src.styles import apply_styles
@@ -185,8 +186,14 @@ elif menu == "📈 Análisis de Logs":
             log_id = log_options[selected_log_name]
             log_data = get_log(log_id)
             if log_data:
+                st.session_state["active_log_id"] = log_id
                 st.session_state["raw_csv"] = log_data["content"]
                 st.session_state["structure"] = json.loads(log_data["analysis_json"])
+                # Cargar chat si existe
+                if log_data.get("chat_history_json"):
+                    st.session_state.ai_chat_history = json.loads(log_data["chat_history_json"])
+                else:
+                    st.session_state.ai_chat_history = []
                 st.info(f"Cargado: {log_data['filename']}")
 
     st.divider()
@@ -202,15 +209,18 @@ elif menu == "📈 Análisis de Logs":
             st.error(structure["error"])
         else:
             # Guardar en DB para siempre
-            save_log(uploaded.name, raw_csv, json.dumps(structure))
+            new_id = save_log(uploaded.name, raw_csv, json.dumps(structure))
+            st.session_state["active_log_id"] = new_id
             st.session_state["raw_csv"] = raw_csv
             st.session_state["structure"] = structure
+            st.session_state.ai_chat_history = []
             st.success("Log analizado y guardado en el historial.")
 
     # --- MOSTRAR RESULTADOS (si hay un log cargado en state) ---
     if "raw_csv" in st.session_state and "structure" in st.session_state:
         raw_csv = st.session_state["raw_csv"]
         structure = st.session_state["structure"]
+        active_log_id = st.session_state.get("active_log_id")
         
         # Mostrar análisis del mecánico
         if structure.get("analysis"):
@@ -265,6 +275,10 @@ elif menu == "📈 Análisis de Logs":
                     response = ai_chat_response(raw_csv, chat_prompt, st.session_state.ai_chat_history)
                     st.write(response)
             st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
+            
+            # GUARDAR CHAT ACTUALIZADO EN DB
+            if active_log_id:
+                update_log_chat(active_log_id, json.dumps(st.session_state.ai_chat_history))
 
 # --- CONFIGURACIÓN ---
 elif menu == "⚙️ Configuración":

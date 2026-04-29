@@ -103,3 +103,12 @@ def get_log(log_id: int) -> dict | None:
             "SELECT * FROM logs WHERE id = ?", (log_id,)
         ).fetchone()
     return dict(row) if row else None
+
+
+def update_log_chat(log_id: int, chat_history_json: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE logs SET chat_history_json = ? WHERE id = ?",
+            (chat_history_json, log_id),
+        )
+        conn.commit()
