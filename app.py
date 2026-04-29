@@ -273,6 +273,33 @@ elif menu == "🔧 Mantenimiento":
             padding: 12px !important;
             border-radius: 4px !important;
         }
+
+        /* TODAS las etiquetas (labels) de la sección */
+        label p, .stMarkdown p {
+            color: #1c47ff !important;
+            text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+        }
+
+        /* Botones de ordenación y otros botones de la sección */
+        div.stButton button {
+            background-color: #000000 !important;
+            color: #1c47ff !important;
+            border: 1.5px solid #ff0000 !important;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.2) !important;
+            text-shadow: 0 0 8px rgba(28, 71, 255, 0.8) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+        }
+        
+        div.stButton button:hover {
+            border-color: #1c47ff !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(28, 71, 255, 0.5) !important;
+        }
             color: #1c47ff !important;
             text-shadow: 0 0 8px rgba(28, 71, 255, 0.6) !important;
             font-family: 'JetBrains Mono', monospace !important;
