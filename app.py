@@ -209,7 +209,7 @@ elif menu == "🔧 Mantenimiento":
             with col1:
                 date = st.date_input("Fecha")
                 mileage = st.number_input("Kilometraje (km)", min_value=0, step=100, value=280000)
-                category = st.selectbox("Categoría", ["Aceite", "Filtros", "Distribución", "Frenos", "Suspensión", "Neumáticos", "Electrónica", "Otro"])
+                category = st.selectbox("Categoría", ["Aceite", "Filtros", "Fluidos", "Distribución", "Frenos", "Suspensión", "Neumáticos", "Electrónica", "Otros"])
             with col2:
                 description = st.text_input("Descripción", placeholder="Ej: Cambio aceite Motul 5W40")
                 cost = st.number_input("Coste (EUR)", min_value=0.0, step=5.0)
@@ -225,10 +225,36 @@ elif menu == "🔧 Mantenimiento":
     
     st.divider()
     st.subheader("📋 Registro Histórico")
-    entries = list_entries()
     
+    # --- BARRA DE FILTROS Y ORDEN ---
+    all_entries = list_entries()
+    categories = ["Todas", "Aceite", "Filtros", "Fluidos", "Frenos", "Neumáticos", "Motor", "Otros"]
+    
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        filter_cat = st.selectbox("Filtrar por categoría:", categories)
+    with col_f2:
+        sort_by = st.selectbox("Ordenar por:", ["Fecha (Más reciente)", "Fecha (Más antiguo)", "Kilometraje", "Coste (Mayor primero)", "Nombre (A-Z)"])
+
+    # Aplicar Filtro
+    entries = all_entries
+    if filter_cat != "Todas":
+        entries = [e for e in all_entries if e["category"] == filter_cat]
+
+    # Aplicar Orden
+    if sort_by == "Fecha (Más reciente)":
+        entries = sorted(entries, key=lambda x: x["date"], reverse=True)
+    elif sort_by == "Fecha (Más antiguo)":
+        entries = sorted(entries, key=lambda x: x["date"])
+    elif sort_by == "Kilometraje":
+        entries = sorted(entries, key=lambda x: x["mileage_km"], reverse=True)
+    elif sort_by == "Coste (Mayor primero)":
+        entries = sorted(entries, key=lambda x: x.get("cost_eur", 0.0), reverse=True)
+    elif sort_by == "Nombre (A-Z)":
+        entries = sorted(entries, key=lambda x: x["description"].lower())
+
     if not entries:
-        st.info("No hay intervenciones registradas.")
+        st.info("No hay intervenciones que coincidan con los filtros.")
     else:
         for entry in entries:
             # Título limpio (solo descripción)
@@ -254,17 +280,21 @@ elif menu == "🔧 Mantenimiento":
                             new_date = st.date_input("Fecha", value=curr_date)
                             new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
                             new_desc = st.text_input("Descripción", value=entry.get('description', ''))
-                            new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
-                                                 index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry.get('category', 'Otros')))
+                            # Usar la lista actualizada de categorías aquí también
+                            edit_categories = ["Aceite", "Filtros", "Fluidos", "Frenos", "Neumáticos", "Motor", "Otros"]
+                            current_cat = entry.get('category', 'Otros')
+                            cat_idx = edit_categories.index(current_cat) if current_cat in edit_categories else len(edit_categories)-1
+                            
+                            new_cat = st.selectbox("Categoría", edit_categories, index=cat_idx)
                             new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
                             new_notes = st.text_area("Notas adicionales", value=entry.get('notes', ''))
                             
-                            col_f1, col_f2 = st.columns(2)
-                            if col_f1.form_submit_button("💾 Guardar"):
+                            col_f1_e, col_f2_e = st.columns(2)
+                            if col_f1_e.form_submit_button("💾 Guardar"):
                                 update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost, new_notes)
                                 st.session_state[f"edit_{entry['id']}"] = False
                                 st.rerun()
-                            if col_f2.form_submit_button("❌ Cancelar"):
+                            if col_f2_e.form_submit_button("❌ Cancelar"):
                                 st.session_state[f"edit_{entry['id']}"] = False
                                 st.rerun()
 
