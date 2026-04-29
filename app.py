@@ -231,29 +231,51 @@ elif menu == "🔧 Mantenimiento":
         st.info("No hay intervenciones registradas.")
     else:
         for entry in entries:
-            with st.expander(f"🛠️ {entry['date']} - {entry['description']} ({entry['mileage_km']:,} km)"):
-                col1, col2 = st.columns([3, 1])
+            # Título limpio (solo descripción)
+            with st.expander(f"🛠️ {entry['description']}"):
+                col_info, col_btns = st.columns([3, 1])
                 
-                with col1:
-                    # Formulario de edición (dentro del expander)
-                    with st.form(f"edit_form_{entry['id']}"):
-                        current_date = datetime.strptime(entry['date'], '%Y-%m-%d')
-                        new_date = st.date_input("Fecha", value=current_date)
-                        new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
-                        new_desc = st.text_input("Descripción", value=entry.get('description', ''))
-                        new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
-                                             index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry.get('category', 'Otros')))
-                        new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
-                        new_notes = st.text_area("Notas adicionales", value=entry.get('notes', ''))
-                        
-                        if st.form_submit_button("💾 Guardar Cambios"):
-                            update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost, new_notes)
-                            st.success("Entrada actualizada correctamente")
-                            st.rerun()
+                # Estado para saber si estamos editando esta entrada
+                edit_mode = st.session_state.get(f"edit_{entry['id']}", False)
+                
+                with col_info:
+                    if not edit_mode:
+                        # VISTA DE LECTURA
+                        st.markdown(f"**📅 Fecha:** {entry['date']}")
+                        st.markdown(f"**🛣️ Kilometraje:** {entry['mileage_km']:,} km")
+                        st.markdown(f"**📁 Categoría:** {entry['category']}")
+                        st.markdown(f"**💰 Coste:** {entry.get('cost_eur', 0.0)} €")
+                        if entry.get('notes'):
+                            st.markdown(f"**📝 Notas:** {entry['notes']}")
+                    else:
+                        # VISTA DE EDICIÓN (Formulario)
+                        with st.form(f"edit_form_{entry['id']}"):
+                            curr_date = datetime.strptime(entry['date'], '%Y-%m-%d')
+                            new_date = st.date_input("Fecha", value=curr_date)
+                            new_km = st.number_input("Kilometraje (km)", value=entry['mileage_km'])
+                            new_desc = st.text_input("Descripción", value=entry.get('description', ''))
+                            new_cat = st.selectbox("Categoría", ["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"], 
+                                                 index=["Aceite", "Filtros", "Frenos", "Neumáticos", "Motor", "Otros"].index(entry.get('category', 'Otros')))
+                            new_cost = st.number_input("Coste (€)", value=float(entry.get('cost_eur', 0.0)))
+                            new_notes = st.text_area("Notas adicionales", value=entry.get('notes', ''))
+                            
+                            col_f1, col_f2 = st.columns(2)
+                            if col_f1.form_submit_button("💾 Guardar"):
+                                update_entry(entry['id'], new_date.strftime('%Y-%m-%d'), new_km, new_desc, new_cat, new_cost, new_notes)
+                                st.session_state[f"edit_{entry['id']}"] = False
+                                st.rerun()
+                            if col_f2.form_submit_button("❌ Cancelar"):
+                                st.session_state[f"edit_{entry['id']}"] = False
+                                st.rerun()
 
-                with col2:
-                    st.markdown("<br><br><br>", unsafe_allow_html=True) # Espaciado
-                    if st.button("🗑️ Eliminar", key=f"del_{entry['id']}", use_container_width=True):
+                with col_btns:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    if not edit_mode:
+                        if st.button("✏️ Editar", key=f"btn_edit_{entry['id']}", use_container_width=True):
+                            st.session_state[f"edit_{entry['id']}"] = True
+                            st.rerun()
+                    
+                    if st.button("🗑️ Eliminar", key=f"btn_del_{entry['id']}", use_container_width=True):
                         delete_entry(entry['id'])
                         st.warning("Entrada eliminada")
                         st.rerun()
