@@ -1,9 +1,10 @@
 from __future__ import annotations
-
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import json
+import io
 
 from src.db import init_db
 from src.ai_assistant import ai_analyze_csv, ai_build_charts, ai_chat_response
@@ -21,7 +22,7 @@ from src.maintenance import (
 )
 from src.styles import apply_styles
 
-# Initialize
+# Initialize Page Config (MUST BE FIRST)
 st.set_page_config(
     page_title="Golf-reki ALH Care",
     page_icon="🏎️",
@@ -29,23 +30,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilos globales adicionales para asegurar que el botón de la sidebar sea visible
+# Global styles for sidebar visibility
 st.markdown("""
     <style>
-    /* Asegurar que el botón de abrir sidebar sea visible y estilo Golf */
     button[kind="headerNoPadding"] {
-        background-color: rgba(37, 99, 235, 0.2) !important;
+        background-color: rgba(37, 99, 235, 0.3) !important;
         border-radius: 5px !important;
         color: #2563eb !important;
-    }
-    button[kind="headerNoPadding"]:hover {
-        background-color: rgba(37, 99, 235, 0.4) !important;
-        box-shadow: 0 0 10px #2563eb;
+        padding: 5px !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Inicializar DB
+# Initialize DB
 init_db()
 apply_styles()
 
