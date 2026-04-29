@@ -11,16 +11,52 @@ def apply_styles():
             color: #ffffff !important;
         }
 
-        /* Sidebar - Mk4 Center Console */
+        /* Sidebar - Mk4 Cockpit Style */
         [data-testid="stSidebar"] {
-            background-color: #111111 !important;
-            border-right: 2px solid #222 !important;
+            background-color: #0a0a0c !important;
+            border-right: 1px solid #1c39bb !important;
+            box-shadow: 5px 0 15px rgba(28, 57, 187, 0.1) !important;
+        }
+        
+        [data-testid="stSidebarNav"] {
+            background-color: transparent !important;
+        }
+
+        /* Menu Radio Buttons - Indigo Glow */
+        div[data-testid="stSidebarUserContent"] .stRadio > label {
+            color: #ffffff !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.9rem !important;
+            padding: 10px !important;
+            border-radius: 5px !important;
+            transition: all 0.3s !important;
+        }
+
+        div[data-testid="stSidebarUserContent"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"] {
+            background-color: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(28, 57, 187, 0.1) !important;
+            margin-bottom: 5px !important;
+            padding: 8px 12px !important;
+            border-radius: 4px !important;
+        }
+
+        div[data-testid="stSidebarUserContent"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"]:hover {
+            border-color: #1c39bb !important;
+            background-color: rgba(28, 57, 187, 0.1) !important;
+        }
+
+        /* Active Menu Item - Pure Indigo */
+        div[data-testid="stSidebarUserContent"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"]:has(input:checked) {
+            background-color: #1c39bb !important;
+            box-shadow: 0 0 15px rgba(28, 57, 187, 0.5) !important;
+            border: 1px solid #2e5bff !important;
         }
         
         [data-testid="stSidebar"] h3 {
-            color: #ff0000 !important;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.7) !important;
+            color: #ffffff !important;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5) !important;
             font-family: 'JetBrains Mono', monospace !important;
+            letter-spacing: 2px !important;
         }
 
         /* Metrics - Iconic Indigo and Red LCD */

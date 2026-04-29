@@ -47,55 +47,53 @@ st.markdown("""
 init_db()
 apply_styles()
 
-# Sidebar Navigation
+# --- SIDEBAR NAVIGATION ---
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/600px-Volkswagen_logo_2019.svg.png", width=60)
-    st.markdown("### **GOLF MK4 TDI**")
-    st.markdown('<p style="background-color: #1a0000; color: #ff0000; padding: 5px 12px; border-radius: 4px; font-weight: bold; border: 1px solid #ff0000; display: inline-block; font-size: 0.7rem; font-family: monospace; box-shadow: 0 0 10px rgba(255,0,0,0.3);">MFA ACTIVE | ALH 1.9</p>', unsafe_allow_html=True)
+    # Logo y Título
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/6/6d/Volkswagen_logo_2019.svg", width=50)
+    with col2:
+        st.markdown("<h2 style='margin:0; font-size:1.5rem; color:#ffffff;'>GOLF MK4</h2><p style='color:#1c39bb; margin:0; font-weight:bold; font-size:0.8rem;'>INDIGO EDITION</p>", unsafe_allow_html=True)
+    
     st.markdown("---")
     
-    # Lógica de persistencia de página mediante URL
+    # MFA Status Bar
+    st.markdown("""
+        <div style="background-color: #000; border: 1px solid #ff0000; border-radius: 4px; padding: 8px; text-align: center; box-shadow: inset 0 0 10px rgba(255,0,0,0.2);">
+            <span style="color: #ff0000; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 0.8rem;">
+                MFA STATUS: OK | ALH 1.9 TDI
+            </span>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Navegación principal
     menu_options = ["🏠 Dashboard", "🔧 Mantenimiento", "📈 Análisis de Logs", "⚙️ Configuración"]
-    
-    # Leer página actual de la URL o usar Dashboard por defecto
     default_page = st.query_params.get("page", "🏠 Dashboard")
-    if default_page not in menu_options:
-        default_page = "🏠 Dashboard"
-    
+    if default_page not in menu_options: default_page = "🏠 Dashboard"
     idx = menu_options.index(default_page)
     
-    menu = st.radio(
-        "MENÚ PRINCIPAL",
-        menu_options,
-        index=idx
-    )
-    
-    # Actualizar la URL al cambiar de menú
+    menu = st.radio("SISTEMA CENTRAL", menu_options, index=idx)
     st.query_params["page"] = menu
 
     st.markdown("---")
     
-    # KM Management in Sidebar
+    # Odometer Section
     info = get_vehicle_info()
     current_km = int(info.get("current_mileage", 280000))
+    st.markdown("<p style='color:#666; font-size:0.7rem; margin-bottom:0;'>TOTAL ODOMETER</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='color:#ff0000; margin-top:0; font-size:1.8rem; text-shadow: 0 0 10px rgba(255,0,0,0.5);'>{current_km:,} KM</h1>", unsafe_allow_html=True)
     
-    # Fetch last maintenance km to ensure we don't go below that either
-    entries = list_entries()
-    last_maint_km = max([e["mileage_km"] for e in entries]) if entries else 0
-    min_allowed_km = max(current_km, last_maint_km)
-    
-    st.markdown(f'<h3 style="color: #4d4dff; text-align: center;">{min_allowed_km:,} KM</h3>', unsafe_allow_html=True)
-    
-    with st.expander("ACTUALIZAR ODOMETRO"):
-        new_km = st.number_input("Kilómetros", value=min_allowed_km, step=100, min_value=min_allowed_km)
-        if st.button("SET KM", use_container_width=True):
-            if new_km > current_km:
-                update_vehicle_info("current_mileage", str(new_km))
-                st.success("OK")
-                st.rerun()
+    if st.button("⌨️ ACTUALIZAR KILOMETRAJE", use_container_width=True):
+        st.query_params["page"] = "⚙️ Configuración"
+        st.rerun()
 
-    st.caption(f"PRÓXIMO SERVICIO: {min_allowed_km + (10000 - (min_allowed_km % 10000)) if (min_allowed_km % 10000) != 0 else min_allowed_km + 10000} KM")
-    st.caption("ALH Care v3.0 • Indigo Edition")
+    st.markdown("<div style='margin-top:20px; border-top:1px solid #222; padding-top:10px;'>", unsafe_allow_html=True)
+    st.caption(f"PRÓXIMO SERVICIO: {current_km + (10000 - (current_km % 10000)) if (current_km % 10000) != 0 else current_km + 10000} KM")
+    st.caption("ALH Care v3.5 • Indigo Edition")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # --- DASHBOARD ---
 if menu == "🏠 Dashboard":
