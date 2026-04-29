@@ -93,15 +93,24 @@ def init_db() -> None:
             # La columna ya existe, no hacemos nada
             pass
         
-        # Tabla para averías detectadas por la IA
+        # Tabla para sesiones de chat (Master Chat)
         conn.execute('''
-            CREATE TABLE IF NOT EXISTS faults (
+            CREATE TABLE IF NOT EXISTS chat_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                component TEXT NOT NULL,
-                severity TEXT DEFAULT 'WARNING',
-                description TEXT,
-                detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                is_fixed INTEGER DEFAULT 0
+                title TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Tabla para mensajes de chat
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
             )
         ''')
         

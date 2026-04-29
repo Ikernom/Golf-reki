@@ -187,3 +187,31 @@ def update_future_mod(mod_id, description, estimated_cost, category, priority, n
             (description, estimated_cost, category, priority, notes, mod_id)
         )
         conn.commit()
+def create_chat_session(title: str = "Nueva Consulta") -> int:
+    with get_connection() as conn:
+        cursor = conn.execute("INSERT INTO chat_sessions (title) VALUES (?)", (title,))
+        conn.commit()
+        return cursor.lastrowid
+
+def save_chat_message(session_id: int, role: str, content: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO chat_messages (session_id, role, content) VALUES (?, ?, ?)",
+            (session_id, role, content)
+        )
+        conn.commit()
+
+def list_chat_sessions():
+    with get_connection() as conn:
+        cursor = conn.execute("SELECT * FROM chat_sessions ORDER BY created_at DESC")
+        return [dict(row) for row in cursor.fetchall()]
+
+def get_chat_messages(session_id: int):
+    with get_connection() as conn:
+        cursor = conn.execute("SELECT role, content FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC", (session_id,))
+        return [dict(row) for row in cursor.fetchall()]
+
+def delete_chat_session(session_id: int):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM chat_sessions WHERE id = ?", (session_id,))
+        conn.commit()

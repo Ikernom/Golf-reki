@@ -626,36 +626,82 @@ elif menu == "🧠 Master Chat":
     st.title("Cerebro del Proyecto")
     st.markdown("Consulta cualquier duda sobre el mantenimiento, mods o estado general de tu coche. **Gemini** tiene acceso a toda tu base de datos.")
     
+    from src.maintenance import (
+        list_chat_sessions, create_chat_session, get_chat_messages, 
+        save_chat_message, delete_chat_session
+    )
+
+    # Inicializar sesión de chat actual si no existe
+    if "current_chat_session_id" not in st.session_state:
+        st.session_state.current_chat_session_id = None
     if "master_chat_history" not in st.session_state:
         st.session_state.master_chat_history = []
 
-    # Botón para limpiar chat
-    col_chat1, col_chat2 = st.columns([5, 1])
-    with col_chat2:
-        if st.button("🧹 Reset", width='stretch'):
+    # SIDEBAR DEL CHAT (Estilo ChatGPT)
+    with st.sidebar:
+        st.markdown("### 🧠 SESIONES")
+        if st.button("➕ NUEVA CONSULTA", width='stretch'):
+            st.session_state.current_chat_session_id = create_chat_session()
             st.session_state.master_chat_history = []
             st.rerun()
+        
+        st.markdown("---")
+        sessions = list_chat_sessions()
+        for s in sessions:
+            col_s1, col_s2 = st.columns([4, 1])
+            with col_s1:
+                is_active = st.session_state.current_chat_session_id == s['id']
+                label = f"💬 {s['title'][:20]}..." if len(s['title']) > 20 else f"💬 {s['title']}"
+                if st.button(label, key=f"session_{s['id']}", width='stretch', type="secondary" if not is_active else "primary"):
+                    st.session_state.current_chat_session_id = s['id']
+                    st.session_state.master_chat_history = get_chat_messages(s['id'])
+                    st.rerun()
+            with col_s2:
+                if st.button("🗑️", key=f"del_sess_{s['id']}"):
+                    delete_chat_session(s['id'])
+                    if st.session_state.current_chat_session_id == s['id']:
+                        st.session_state.current_chat_session_id = None
+                        st.session_state.master_chat_history = []
+                    st.rerun()
 
-    # Contenedor de chat
+    # Contenedor principal del chat
     chat_container = st.container()
-    
-    with chat_container:
-        for msg in st.session_state.master_chat_history:
-            with st.chat_message(msg["role"], avatar="🏎️" if msg["role"] == "assistant" else None):
-                st.write(msg["content"])
 
+    with chat_container:
+        if not st.session_state.master_chat_history:
+            st.info("Escribe algo abajo para empezar a hablar con el Cerebro de tu Golf.")
+        else:
+            for message in st.session_state.master_chat_history:
+                with st.chat_message(message["role"], avatar="🏎️" if message["role"] == "assistant" else None):
+                    st.write(message["content"])
+
+    # Entrada de texto
     if chat_prompt := st.chat_input("Dime, ¿qué quieres saber de tu Golf?"):
+        # Si no hay sesión activa, crear una
+        if st.session_state.current_chat_session_id is None:
+            # Usar la primera pregunta como título (cortado)
+            title = chat_prompt[:30] + "..." if len(chat_prompt) > 30 else chat_prompt
+            st.session_state.current_chat_session_id = create_chat_session(title)
+
+        # Mostrar mensaje de usuario
         with chat_container:
             with st.chat_message("user"):
                 st.write(chat_prompt)
+        
+        # Guardar en DB y Session State
+        save_chat_message(st.session_state.current_chat_session_id, "user", chat_prompt)
         st.session_state.master_chat_history.append({"role": "user", "content": chat_prompt})
         
+        # Respuesta de la IA
         with chat_container:
             with st.chat_message("assistant", avatar="🏎️"):
                 with st.spinner("Consultando base de datos..."):
                     from src.ai_assistant import ai_master_chat_response
                     response = ai_master_chat_response(chat_prompt)
                     st.write(response)
+        
+        # Guardar respuesta en DB y Session State
+        save_chat_message(st.session_state.current_chat_session_id, "assistant", response)
         st.session_state.master_chat_history.append({"role": "assistant", "content": response})
 
 # --- CONFIGURACIÓN ---
