@@ -1,82 +1,61 @@
-# 🏎️ Golf-reki ALH Care 🛠️
+<p align="center">
+  <img src="assets/readme_hero.png" width="100%" alt="Golf MK4 Dashboard Hero">
+</p>
 
-**Golf-reki ALH Care** es una plataforma integral de gestión y diagnóstico diseñada específicamente para entusiastas del Volkswagen Golf MK4 (motor 1.9 TDI ALH). Combina la potencia de la Inteligencia Artificial con una interfaz inmersiva inspirada en el icónico cuadro de instrumentos *Indigo & Red*.
+<h1 align="center">
+  <font color="#1c47ff">GOLF MK4</font> <font color="#ff0000">REKI</font>
+</h1>
 
-![Estilo MK4](https://img.shields.io/badge/UI-Retro_MK4_Indigo-blue?style=for-the-badge&logo=volkswagen)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+<p align="center">
+  <i>El Sistema de Gestión de Mantenimiento y Telemetría definitivo para el Volkswagen Golf MK4.</i>
+</p>
 
----
-
-## 🌟 Características Principales
-
-### 🧠 Diagnóstico Inteligente (Mecánico Virtual)
-- **Análisis de Logs VCDS**: Sube tus archivos `.csv` de telemetría y deja que **Gemini AI** analice el estado del turbo, el caudalímetro (MAF) y la inyección.
-- **Detección Automática de Fallos**: El sistema identifica condiciones críticas y sugiere reparaciones.
-- **Chat Interactivo**: Pregunta directamente a la IA sobre el comportamiento de tu motor (ej: "¿Por qué entra en limp mode?").
-
-### 🔧 Gestión de Mantenimiento Avanzada
-- **Registro de Intervenciones**: Control total sobre reparaciones, mantenimiento preventivo y costes.
-- **Categorización Dinámica**: Crea tus propias categorías (Fluidos, Frenos, Mod, etc.) directamente desde la app.
-- **Filtros y Ordenación**: Organiza tus registros por fecha, kilometraje o inversión.
-
-### 📅 Plan de Futuro (Roadmap/Wishlist)
-- **Pestaña de Proyectos**: Planifica tus futuras modificaciones y mejoras.
-- **Priorización**: Clasifica tus ideas por urgencia (Alta, Media, Baja) y estima los costes para gestionar tu presupuesto.
-
-### 📊 Análisis de Inversión
-- **Gráficos Interactivos**: Visualiza el gasto acumulado en el tiempo con puntos interactivos para cada modificación.
-- **Métricas del Dashboard**: Kilometraje actual, estado del aceite y total invertido de un solo vistazo.
+<p align="center">
+  <img src="https://img.shields.io/badge/VW_GOLF-MK4-1c47ff?style=for-the-badge&logo=volkswagen&logoColor=white" alt="VW Badge">
+  <img src="https://img.shields.io/badge/UI_STYLE-INDIGO_RED-ff0000?style=for-the-badge" alt="Style Badge">
+  <img src="https://img.shields.io/badge/POWERED_BY-GEMINI_AI-1c47ff?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini Badge">
+</p>
 
 ---
 
-## 🎨 Interfaz Inmersiva "Indigo & Red"
-La aplicación ha sido rediseñada para replicar la atmósfera nocturna del **Golf MK4**:
-- **Títulos Azul Índigo**: Resplandor neón idéntico a los relojes del cuadro.
-- **Bordes Rojo Aguja**: Recuadros y alertas inspirados en las agujas y testigos del salpicadero.
-- **Modo Oscuro Absoluto**: Optimizado para una visualización sin distracciones.
+### <font color="#1c47ff">🏎️ VISIÓN GENERAL</font>
+**Golf-reki** es una aplicación diseñada para entusiastas del motor que buscan un control total sobre la salud de su vehículo. Inspirada íntegramente en la icónica estética **Índigo y Rojo** de los cuadros de instrumentos VDO/Motometer del Golf IV, esta app combina nostalgia con inteligencia artificial de vanguardia.
+
+### <font color="#ff0000">🛠️ CARACTERÍSTICAS PRINCIPALES</font>
+
+*   **Dashboard "High-Fidelity"**: Visualización en tiempo real del odómetro, estado del sistema MFA y próximos mantenimientos.
+*   **Gestión de Mantenimiento**: Registro detallado de intervenciones realizadas y control de costes.
+*   **Planificador de Modificaciones (Wishlist)**: Organiza tus futuras mejoras por prioridad y coste estimado.
+*   **Telemetría Inteligente**: Sube tus logs de VCDS (.csv) y deja que Gemini AI analice el soplado del turbo, el caudalímetro y la inyección por ti.
+*   **Chat Maestro 🧠**: Un asistente virtual que conoce todo el historial de tu coche y te asesora en tiempo real.
+
+### <font color="#1c47ff">💻 STACK TECNOLÓGICO</font>
+
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/Plotly-3F4F75?style=flat-square&logo=plotly&logoColor=white" alt="Plotly">
+</p>
+
+### <font color="#ff0000">🚦 INSTALACIÓN RÁPIDA</font>
+
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/Ikernom/Golf-reki.git
+   ```
+2. Instala las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Lanza el dashboard:
+   ```bash
+   streamlit run app.py
+   ```
 
 ---
 
-## 🛠️ Instalación y Configuración
-
-### 1. Clonar y preparar entorno
-```bash
-# Clonar el repositorio
-git clone <URL_DEL_REPO>
-cd Golf-reki
-
-# Crear y activar entorno virtual
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Instalar dependencias
-pip install -r requirements.txt
-```
-
-### 2. Configuración de IA
-Para usar el Mecánico Virtual, necesitas una API Key de Google Gemini (gratuita):
-1. Consíguela en [Google AI Studio](https://aistudio.google.com/).
-2. Introdúcela en la sección de **⚙️ Configuración** dentro de la app.
-
----
-
-## 🚀 Ejecución
-
-```bash
-streamlit run app.py
-```
-La aplicación se abrirá automáticamente en tu navegador (por defecto en `http://localhost:8501`).
-
----
-
-## 📁 Estructura del Proyecto
-- `app.py`: Núcleo de la interfaz y lógica de navegación.
-- `src/maintenance.py`: Gestión de base de datos y CRUD de mantenimiento/roadmap.
-- `src/ai_assistant.py`: Integración con Gemini para análisis de logs.
-- `src/styles.py`: Motor de estilos CSS con temática MK4.
-- `src/db.py`: Esquema de la base de datos SQLite3.
-
----
-
-**Desarrollado para amantes del TDI • ALH Care v3.5 • Indigo Edition** 🏎️💨
+<p align="center">
+  <font color="#1c47ff">Desarrollado con ❤️ para la comunidad VAG.</font><br>
+  <font color="#555555"><i>"Das Auto."</i></font>
+</p>
