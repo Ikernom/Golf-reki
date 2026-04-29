@@ -19,7 +19,10 @@ from src.maintenance import (
     list_logs,
     get_log,
     update_log_chat,
-    get_last_mileage_for_category
+    get_last_mileage_for_category,
+    add_fault,
+    get_active_faults,
+    mark_fault_fixed
 )
 from src.styles import apply_styles
 
@@ -58,11 +61,21 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # MFA Status Bar
-    st.markdown("""
-        <div style="background-color: #000; border: 1px solid #ff0000; border-radius: 4px; padding: 8px; text-align: center; box-shadow: inset 0 0 10px rgba(255,0,0,0.2);">
-            <span style="color: #ff0000; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 0.8rem;">
-                MFA STATUS: OK | ALH 1.9 TDI
+    # MFA Status Bar Dinámico
+    active_faults = get_active_faults()
+    if not active_faults:
+        status_text = "MFA STATUS: OK | ALH 1.9 TDI"
+        status_color = "#ff0000"
+        glow_color = "rgba(255,0,0,0.2)"
+    else:
+        status_text = f"FAULT: {active_faults[0]['component']} | CHECK SYSTEM"
+        status_color = "#ff4444"
+        glow_color = "rgba(255,0,0,0.6)"
+
+    st.markdown(f"""
+        <div style="background-color: #000; border: 1px solid {status_color}; border-radius: 4px; padding: 8px; text-align: center; box-shadow: inset 0 0 15px {glow_color};">
+            <span style="color: {status_color}; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 0.8rem; text-transform: uppercase;">
+                {status_text}
             </span>
         </div>
     """, unsafe_allow_html=True)
@@ -134,6 +147,27 @@ if menu == "🏠 Dashboard":
     col_left, col_right = st.columns([2, 1])
     
     with col_left:
+        # --- ESTADO DE SALUD ---
+        st.subheader("🩺 Estado de Salud del Vehículo")
+        active_faults = get_active_faults()
+        if active_faults:
+            for fault in active_faults:
+                with st.container():
+                    severity_color = "red" if fault["severity"] == "CRITICAL" else "orange"
+                    st.markdown(f"""
+                        <div style="border-left: 5px solid {severity_color}; background-color: #111; padding: 15px; border-radius: 5px; margin-bottom: 10px;">
+                            <h4 style="margin:0; color:{severity_color};">{fault['component']} - {fault['severity']}</h4>
+                            <p style="margin:5px 0; font-size:0.9rem;">{fault['description']}</p>
+                            <small style="color:#666;">Detectado el: {fault['detected_at']}</small>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"Marcar {fault['component']} como reparado", key=f"fix_{fault['id']}"):
+                        mark_fault_fixed(fault['id'])
+                        st.rerun()
+        else:
+            st.success("No se han detectado fallos activos. El coche está en perfecto estado.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
         st.subheader("📊 Histórico de Inversión")
         if not df_entries.empty:
             df_entries["date"] = pd.to_datetime(df_entries["date"])
@@ -234,6 +268,12 @@ elif menu == "📈 Análisis de Logs":
             st.session_state["raw_csv"] = raw_csv
             st.session_state["structure"] = structure
             st.session_state.ai_chat_history = []
+            
+            # Registrar fallos detectados
+            if structure.get("detected_faults"):
+                for fault in structure["detected_faults"]:
+                    add_fault(fault["component"], fault["severity"], fault["description"])
+            
             st.success("Log analizado y guardado en el historial.")
 
     # --- MOSTRAR RESULTADOS (si hay un log cargado en state) ---

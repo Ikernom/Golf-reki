@@ -10,7 +10,7 @@ from src.maintenance import get_vehicle_info
 def ai_analyze_csv(raw_csv_text: str) -> dict:
     """
     Envía el CSV crudo a Gemini y le pide que lo analice y devuelva
-    instrucciones para generar las gráficas.
+    instrucciones para generar las gráficas y detectar averías.
     """
     info = get_vehicle_info()
     api_key = info.get("gemini_api_key")
@@ -22,26 +22,19 @@ def ai_analyze_csv(raw_csv_text: str) -> dict:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
 
-        # Limitamos el CSV a los primeros 5000 caracteres para no saturar
+        # Limitamos el CSV para no saturar
         csv_sample = raw_csv_text[:8000]
 
         prompt = f"""Eres un experto en VCDS y motores VW TDI ALH.
-Te paso un log de VCDS en formato CSV. Analiza su estructura y devuélveme un JSON con:
-
-1. "groups": lista de grupos detectados, cada uno con:
-   - "id": número del grupo (ej: "011")
-   - "name": nombre descriptivo (ej: "Turbo Boost Analysis")
-   - "columns": lista de objetos con "name" (nombre descriptivo) y "col_index" (índice de columna en el CSV original, 0-based)
-   - "time_col_index": índice de la columna de tiempo para este grupo
-   - "data_start_row": fila donde empiezan los datos numéricos (0-based)
-
-2. "separator": el separador usado ("," o ";")
-
-3. "analysis": texto con tu análisis mecánico del log (en español)
-
-4. "header_rows": número de filas de cabecera antes de los datos
-
-IMPORTANTE: Responde SOLO con el JSON, sin markdown ni explicaciones.
+Analiza este log CSV y devuelve SOLO un objeto JSON con:
+1. "separator": "," o ";"
+2. "header_rows": número de filas de cabecera.
+3. "groups": lista de objetos con "gid", "name" y "columns" (lista de nombres de columnas).
+4. "analysis": Resumen del estado mecánico (máx 100 palabras).
+5. "detected_faults": Lista de fallos encontrados (si los hay), cada uno con:
+   - "component": Nombre del componente (ej: "MAF", "Turbo", "Timing").
+   - "severity": "CRITICAL" o "WARNING".
+   - "description": Explicación técnica breve.
 
 CSV:
 {csv_sample}"""
@@ -49,15 +42,12 @@ CSV:
         response = model.generate_content(prompt)
         text = response.text.strip()
 
-        # Limpiar markdown si viene envuelto
+        # Limpiar markdown
         text = re.sub(r'^```json\s*', '', text)
         text = re.sub(r'\s*```$', '', text)
 
         return json.loads(text)
 
-    except json.JSONDecodeError:
-        # Si no devuelve JSON válido, devolvemos el texto como análisis
-        return {"error": None, "analysis": response.text, "groups": []}
     except Exception as e:
         return {"error": f"❌ Error con Gemini: {str(e)}"}
 
@@ -71,72 +61,55 @@ def ai_build_charts(raw_csv_text: str, structure: dict) -> list:
     sep = structure.get("separator", ",")
     header_rows = structure.get("header_rows", 0)
     groups = structure.get("groups", [])
-    figures = []
 
-    lines = raw_csv_text.splitlines()
+    if not groups:
+        return []
 
-    for group in groups:
-        try:
-            gid = group.get("id", "???")
-            name = group.get("name", f"Group {gid}")
-            columns = group.get("columns", [])
-            time_idx = group.get("time_col_index")
-            data_start = group.get("data_start_row", header_rows)
-
-            if not columns:
-                continue
-
-            # Leer solo las filas de datos
-            data_lines = lines[data_start:]
-            rows = []
-            for line in data_lines:
-                parts = [p.strip().strip("'\"") for p in line.split(sep)]
-                rows.append(parts)
-
-            if not rows:
-                continue
-
-            # Construir la gráfica
+    try:
+        # Intentar leer el CSV
+        df = pd.read_csv(io.StringIO(raw_csv_text), sep=sep, header=header_rows, on_bad_lines='skip')
+        
+        # Limpiar nombres de columnas (quitar espacios)
+        df.columns = [c.strip() for c in df.columns]
+        
+        figures = []
+        for g in groups:
             fig = go.Figure()
+            
+            # Buscar columna de tiempo (suele ser la primera del CSV o contener 'TIME')
+            time_col = df.columns[0]
+            for col in df.columns:
+                if 'TIME' in col.upper():
+                    time_col = col
+                    break
+            
+            valid_cols = [c for c in g["columns"] if c in df.columns]
+            
+            if not valid_cols:
+                continue
 
-            # Eje X: tiempo si existe
-            x_data = None
-            if time_idx is not None:
-                x_raw = [r[time_idx] if time_idx < len(r) else None for r in rows]
-                x_data = pd.to_numeric(pd.Series(x_raw), errors='coerce')
-
-            for col_info in columns:
-                col_name = col_info.get("name", "???")
-                col_idx = col_info.get("col_index")
-                if col_idx is None:
-                    continue
-
-                y_raw = [r[col_idx] if col_idx < len(r) else None for r in rows]
-                y_data = pd.to_numeric(pd.Series(y_raw), errors='coerce')
-
+            for col in valid_cols:
                 fig.add_trace(go.Scatter(
-                    x=x_data if x_data is not None else y_data.index,
-                    y=y_data,
-                    mode='lines',
-                    name=col_name
+                    x=df[time_col],
+                    y=df[col],
+                    name=col,
+                    mode='lines+markers' if len(df) < 50 else 'lines'
                 ))
-
+            
             fig.update_layout(
-                title=f"{name} (Group {gid})",
-                xaxis_title="Tiempo (s)" if x_data is not None else "Muestra",
-                yaxis_title="Valor",
-                plot_bgcolor="rgba(0,0,0,0)",
+                title=f"Grupo {g['gid']}: {g['name']}",
+                xaxis_title="Tiempo (s)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#ffffff"),
                 hovermode="x unified"
             )
-
-            figures.append({"name": name, "gid": gid, "fig": fig})
-
-        except Exception:
-            continue
-
-    return figures
+            figures.append({"name": g["name"], "gid": g["gid"], "fig": fig})
+            
+        return figures
+    except Exception as e:
+        st.error(f"Error generando gráficas: {e}")
+        return []
 
 
 def ai_chat_response(raw_csv_text: str, user_query: str, history: list = None) -> str:

@@ -112,3 +112,26 @@ def update_log_chat(log_id: int, chat_history_json: str) -> None:
             (chat_history_json, log_id),
         )
         conn.commit()
+
+
+def add_fault(component: str, severity: str, description: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO faults (component, severity, description) VALUES (?, ?, ?)",
+            (component, severity, description),
+        )
+        conn.commit()
+
+
+def get_active_faults() -> Iterable[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM faults WHERE is_fixed = 0 ORDER BY detected_at DESC"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def mark_fault_fixed(fault_id: int) -> None:
+    with get_connection() as conn:
+        conn.execute("UPDATE faults SET is_fixed = 1 WHERE id = ?", (fault_id,))
+        conn.commit()

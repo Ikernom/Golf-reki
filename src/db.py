@@ -66,4 +66,16 @@ def init_db() -> None:
             # La columna ya existe, no hacemos nada
             pass
         
+        # Tabla para averías detectadas por la IA
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS faults (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                component TEXT NOT NULL,
+                severity TEXT DEFAULT 'WARNING',
+                description TEXT,
+                detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                is_fixed INTEGER DEFAULT 0
+            )
+        ''')
+        
         conn.commit()
