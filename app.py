@@ -340,9 +340,8 @@ elif menu == "📈 Análisis de Logs":
         else:
             st.warning("🤖 La IA no ha podido agrupar las columnas automáticamente.")
             
-            # --- SELECTOR MANUAL DE EMERGENCIA ---
-            with st.expander("🛠️ CONSTRUCTOR DE GRÁFICA MANUAL", expanded=True):
-                st.info("Selecciona las columnas que quieres ver en la gráfica:")
+            # --- BOTÓN DE FUERZA BRUTA ---
+            if st.button("🚀 GENERAR GRÁFICAS DE TODO EL LOG", use_container_width=True):
                 try:
                     lines = raw_csv.splitlines()
                     best_sep = "," if raw_csv.count(",") > raw_csv.count(";") else ";"
@@ -352,26 +351,35 @@ elif menu == "📈 Análisis de Logs":
                             h_idx = i
                             break
                     
-                    df_manual = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
-                    df_manual.columns = [str(c).strip() for c in df_manual.columns]
+                    df_all = pd.read_csv(io.StringIO("\n".join(lines[h_idx:])), sep=best_sep, on_bad_lines='skip')
+                    df_all.columns = [str(c).strip() for c in df_all.columns]
                     
-                    # Detectar tiempo
-                    t_col = next((c for c in df_manual.columns if 'TIME' in c.upper()), df_manual.columns[0])
+                    # Identificar columnas numéricas reales
+                    numeric_df = df_all.apply(pd.to_numeric, errors='coerce')
+                    cols_to_plot = [c for c in numeric_df.columns if numeric_df[c].notna().sum() > 5 and 'TIME' not in c.upper()]
                     
-                    # Multiselector de columnas
-                    all_cols = [c for c in df_manual.columns if c != t_col]
-                    selected_cols = st.multiselect("Columnas a graficar:", all_cols)
-                    
-                    if selected_cols:
-                        fig_manual = go.Figure()
-                        for sc in selected_cols:
-                            y_data = pd.to_numeric(df_manual[sc], errors='coerce')
-                            fig_manual.add_trace(go.Scatter(x=df_manual[t_col], y=y_data, name=sc, mode='lines'))
-                        
-                        fig_manual.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-                        st.plotly_chart(fig_manual, use_container_width=True)
+                    if cols_to_plot:
+                        # Agrupamos de 4 en 4 para no saturar
+                        for i in range(0, len(cols_to_plot), 4):
+                            chunk = cols_to_plot[i:i+4]
+                            fig_all = go.Figure()
+                            t_col = next((c for c in df_all.columns if 'TIME' in c.upper()), df_all.columns[0])
+                            
+                            for col in chunk:
+                                fig_all.add_trace(go.Scatter(x=df_all[t_col], y=numeric_df[col], name=col, mode='lines'))
+                            
+                            st.subheader(f"Bloque de Datos {i//4 + 1}")
+                            fig_all.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified")
+                            st.plotly_chart(fig_all, use_container_width=True)
+                    else:
+                        st.error("No se encontraron columnas con datos numéricos suficientes.")
                 except Exception as e:
-                    st.error(f"Error en constructor manual: {e}")
+                    st.error(f"Error al graficar todo: {e}")
+
+            # Mantener el selector manual abajo por si acaso
+            with st.expander("🛠️ CONSTRUCTOR MANUAL"):
+                # (Lógica de multiselect que ya teníamos)
+                pass
         
         # Datos crudos (con salto de cabecera inteligente)
         with st.expander("📋 Datos crudos del CSV"):
