@@ -133,89 +133,103 @@ def apply_styles():
             line-height: 1.6 !important;
         }
 
-        /* --- UNIFICACIÓN UI: COMPONENTES GOLF MK4 --- */
+        /* --- UNIFICACIÓN UI: COMPONENTES GOLF MK4 VDO --- */
         
-        /* MFA Status Bar */
+        /* MFA Status Bar (Pantalla Central VDO) */
         .mfa-status {
-            background-color: rgba(5, 5, 5, 0.8) !important;
-            border-radius: 6px !important;
-            padding: 10px !important;
+            background-color: #050505 !important;
+            border-radius: 4px !important;
+            padding: 12px !important;
             text-align: center !important;
-            margin-bottom: 15px !important;
-            backdrop-filter: blur(5px) !important;
-            border: 1px solid rgba(255, 0, 0, 0.3) !important;
-            box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.1) !important;
+            margin-bottom: 20px !important;
+            border: 2px solid #ff0000 !important;
+            box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.3), 0 0 10px rgba(255, 0, 0, 0.2) !important;
             color: #ff0000 !important;
-            font-family: 'Michroma', sans-serif !important;
+            font-family: 'Share Tech Mono', monospace !important;
             font-weight: bold !important;
-            font-size: 0.75rem !important;
+            font-size: 1.1rem !important;
             text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            transition: all 0.3s ease !important;
+            letter-spacing: 2px !important;
         }
 
         .mfa-status.fault {
-            border-color: #ff4444 !important;
-            box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.6) !important;
-            color: #ff4444 !important;
+            background-color: #1a0000 !important;
+            border-color: #ff0000 !important;
+            box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.5) !important;
+            color: #ffffff !important;
+            text-shadow: 0 0 10px #ff0000 !important;
+            animation: pulse-fault 2s infinite;
         }
 
-        /* VDO Odometer */
+        @keyframes pulse-fault {
+            0% { box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.8); }
+            50% { box-shadow: inset 0 0 50px rgba(255, 0, 0, 1); }
+            100% { box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.8); }
+        }
+
+        /* VDO Odometer (Pantallita de KM) */
         .vdo-odometer-label {
-            color: #666666 !important;
-            font-size: 0.7rem !important;
+            color: #1c47ff !important;
+            font-size: 0.8rem !important;
             margin-bottom: 0 !important;
             font-family: 'Michroma', sans-serif !important;
-            letter-spacing: 1px !important;
+            letter-spacing: 1.5px !important;
+            text-shadow: 0 0 5px rgba(28, 71, 255, 0.5) !important;
         }
         
         .vdo-odometer-value {
-            color: #ff0000 !important;
-            margin-top: 0 !important;
-            font-size: 1.8rem !important;
-            text-shadow: 0 0 15px rgba(255, 0, 0, 0.7) !important;
+            background-color: #000000 !important;
+            color: #1c47ff !important;
+            padding: 10px !important;
+            border: 1px solid #1c47ff !important;
+            border-radius: 4px !important;
+            margin-top: 5px !important;
+            font-size: 2.2rem !important;
+            text-shadow: 0 0 15px rgba(28, 71, 255, 0.8) !important;
             font-family: 'Share Tech Mono', monospace !important;
-            letter-spacing: 2px !important;
+            letter-spacing: 3px !important;
+            box-shadow: inset 0 0 15px rgba(28, 71, 255, 0.2) !important;
+            display: inline-block !important;
         }
 
         /* Fault Cards (Estado de Salud) */
         .fault-card {
-            background: rgba(10, 10, 15, 0.6) !important;
-            backdrop-filter: blur(10px) !important;
+            background: linear-gradient(180deg, #0a0a0f 0%, #050505 100%) !important;
             padding: 15px !important;
-            border-radius: 8px !important;
-            margin-bottom: 12px !important;
-            border: 1px solid rgba(255, 165, 0, 0.4) !important;
-            border-left: 5px solid orange !important;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+            border-radius: 4px !important;
+            margin-bottom: 15px !important;
+            border: 1px solid #1c47ff !important;
+            border-left: 6px solid #1c47ff !important;
+            box-shadow: 0 0 15px rgba(28, 71, 255, 0.15) !important;
         }
         
         .fault-card.critical {
-            border-color: rgba(255, 0, 0, 0.5) !important;
+            border-color: #ff0000 !important;
             border-left-color: #ff0000 !important;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3) !important;
         }
 
         .fault-card h4 {
             margin: 0 !important;
             font-family: 'Michroma', sans-serif !important;
-            font-size: 0.9rem !important;
-            color: inherit !important;
+            font-size: 1rem !important;
+            color: #ffffff !important;
             letter-spacing: 1px !important;
-            text-shadow: none !important;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
         }
 
         .fault-card p {
-            margin: 8px 0 !important;
-            color: #e0e0e0 !important;
+            margin: 10px 0 !important;
+            color: #b0c4ff !important;
             font-family: 'Inter', sans-serif !important;
-            font-size: 0.85rem !important;
-            line-height: 1.5 !important;
+            font-size: 0.9rem !important;
         }
 
         .fault-card small {
-            color: #888888 !important;
+            color: #ff0000 !important;
             font-family: 'Share Tech Mono', monospace !important;
-            font-size: 0.7rem !important;
+            font-size: 0.75rem !important;
+            letter-spacing: 1px !important;
         }
 
         /* LCD Bubbles (Historial y Wishlist) */
@@ -232,21 +246,23 @@ def apply_styles():
             top: 16px; 
             z-index: 99; 
             pointer-events: none;
-            background: rgba(0, 0, 0, 0.95) !important;
-            color: #00d4ff !important;
-            padding: 4px 14px !important;
-            border-radius: 4px !important;
-            font-size: 0.65rem !important;
-            border: 1px solid #ff0000 !important;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3) !important;
+            background: #000000 !important;
+            color: #ff0000 !important;
+            padding: 4px 18px !important;
+            border-radius: 2px !important;
+            font-size: 0.75rem !important;
+            border: 2px solid #ff0000 !important;
+            box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.5), 0 0 15px rgba(255, 0, 0, 0.4) !important;
             text-transform: uppercase !important;
-            font-family: 'Michroma', sans-serif !important;
-            letter-spacing: 1px !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            letter-spacing: 2px !important;
+            font-weight: bold !important;
         }
         
         .lcd-bubble.blue {
-            border-color: #2e5bff !important;
-            box-shadow: 0 0 10px rgba(46, 91, 255, 0.3) !important;
+            color: #1c47ff !important;
+            border-color: #1c47ff !important;
+            box-shadow: inset 0 0 10px rgba(28, 71, 255, 0.5), 0 0 15px rgba(28, 71, 255, 0.4) !important;
         }
 
         /* Scrollbar Personalizada */
